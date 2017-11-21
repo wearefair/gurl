@@ -1,9 +1,7 @@
 package grpc
 
 import (
-	"encoding/json"
-	"fmt"
-
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 )
@@ -21,20 +19,10 @@ func NewValidator() *Validator {
 
 func (v *Validator) Validate(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
 	message := v.Factory.NewDynamicMessage(messageDescriptor)
-	messageMap := map[string]interface{}{}
-	err := json.Unmarshal([]byte(request), &messageMap)
+	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), &message)
 	if err != nil {
 		logger.Error(err.Error())
 		return nil, err
-	}
-	for key, val := range messageMap {
-		field := messageDescriptor.FindFieldByName(key)
-		if field == nil {
-			err := fmt.Errorf("Field %s not found on message %s", key, messageDescriptor.GetName())
-			logger.Error(err.Error())
-			return nil, err
-		}
-		message.SetFieldByName(key, val)
 	}
 	return message, nil
 }
