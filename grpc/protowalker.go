@@ -50,7 +50,8 @@ func (p *ProtoWalker) walkDirs(tree string) {
 func (p *ProtoWalker) Collect(tree string) error {
 	p.walkDirs(tree)
 	parser := protoparse.Parser{
-		ImportPaths: []string{tree},
+		// This is a hack for now to not blow up with the annotations proto
+		ImportPaths: []string{tree, ".internal/googleapis/googleapis-master"},
 	}
 	fileDescriptors, err := parser.ParseFiles(set.StringSlice(p.Paths)...)
 	if err != nil {

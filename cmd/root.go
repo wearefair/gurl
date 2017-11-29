@@ -8,9 +8,9 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/spf13/cobra"
 	"github.com/wearefair/gurl/config"
@@ -86,8 +86,8 @@ func curl(cmd *cobra.Command, args []string) error {
 		logger.Error(err.Error())
 		return err
 	}
-	validator := cligrpc.NewValidator()
-	message, err := validator.Validate(messageDescriptor, data)
+	constructor := cligrpc.NewConstructor()
+	message, err := constructor.Construct(messageDescriptor, data)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func curl(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message *dynamic.Message) ([]byte, error) {
+func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
 	address := fmt.Sprintf("%s:%s", uri.Host, uri.Port)
 	// Figure out auth later
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
