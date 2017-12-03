@@ -66,7 +66,8 @@ func curl(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	walker := cligrpc.NewProtoWalker()
-	walker.Collect(config.Instance().Local.ProtoDir)
+	paths := append(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths...)
+	walker.Collect(paths)
 	collector := cligrpc.NewCollector(walker.Descriptors)
 	serviceDescriptor, err := collector.GetService(uriWrapper.Service)
 	if err != nil {
