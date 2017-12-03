@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
@@ -12,17 +13,31 @@ type Constructor struct {
 }
 
 func NewConstructor() *Constructor {
-	return &Constructor{
+	constructor := &Constructor{
 		Factory: dynamic.NewMessageFactoryWithDefaults(),
 	}
+	constructor.overrideKnownTypes()
+	return constructor
 }
 
-func (v *Constructor) Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
-	message := v.Factory.NewDynamicMessage(messageDescriptor)
+func (c *Constructor) Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
+	message := c.Factory.NewDynamicMessage(messageDescriptor)
 	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), message)
 	if err != nil {
 		logger.Error(err.Error())
 		return nil, err
 	}
 	return message, nil
+}
+
+// Override certain known types
+func (c *Constructor) overrideKnownTypes() {
+	registry := c.Factory.GetKnownTypeRegistry()
+	messageDescriptor, err := desc.LoadMessageDescriptorForMessage(&timestamp.Timestamp{})
+	if err != nil {
+		logger.Error(err.Error())
+		return
+	}
+	message := dynamic.NewMessage(messageDescriptor)
+	registry.AddKnownType(message)
 }

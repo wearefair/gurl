@@ -7,7 +7,6 @@ import (
 
 	set "gopkg.in/fatih/set.v0"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/wearefair/gurl/log"
@@ -61,20 +60,4 @@ func (p *ProtoWalker) Collect(trees []string) error {
 	}
 	p.Descriptors = fileDescriptors
 	return nil
-}
-
-func (p *ProtoWalker) ListMessages() {
-	messages := []*desc.MessageDescriptor{}
-	for _, descriptor := range p.Descriptors {
-		messages = append(messages, descriptor.GetMessageTypes()...)
-	}
-	spew.Dump(messages)
-}
-
-func (p *ProtoWalker) ListServices() {
-	services := []*desc.ServiceDescriptor{}
-	for _, descriptor := range p.Descriptors {
-		services = append(services, descriptor.GetServices()...)
-	}
-	spew.Dump(services)
 }
