@@ -52,7 +52,6 @@ func (p *ProtoWalker) Collect(trees []string) error {
 		p.walkDirs(tree)
 	}
 	parser := protoparse.Parser{
-		// This is a hack for now to not blow up with the annotations proto
 		ImportPaths: trees,
 	}
 	fileDescriptors, err := parser.ParseFiles(set.StringSlice(p.Paths)...)
