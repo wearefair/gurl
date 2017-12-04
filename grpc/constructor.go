@@ -27,13 +27,3 @@ func (c *Constructor) Construct(messageDescriptor *desc.MessageDescriptor, reque
 	}
 	return message, nil
 }
-
-func (c *Constructor) RegisterFileDescriptors(fileDescriptors []*desc.FileDescriptor) {
-	for _, fileDescriptor := range fileDescriptors {
-		messageDescriptors := fileDescriptor.GetMessageTypes()
-		for _, messageDescriptor := range messageDescriptors {
-			message := dynamic.NewMessage(messageDescriptor)
-			c.Factory.GetKnownTypeRegistry().AddKnownType(message)
-		}
-	}
-}
