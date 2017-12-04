@@ -14,23 +14,29 @@ type Collector struct {
 	ServiceCache map[string]*desc.ServiceDescriptor
 }
 
-// Instantiates MessageCollector from file descriptors
 func NewCollector(fileDescriptors []*desc.FileDescriptor) *Collector {
-	messageCache := map[string]*desc.MessageDescriptor{}
-	serviceCache := map[string]*desc.ServiceDescriptor{}
+	collector := &Collector{
+		MessageCache: make(map[string]*desc.MessageDescriptor),
+		ServiceCache: make(map[string]*desc.ServiceDescriptor),
+	}
+	collector.addDescriptorsToCache(fileDescriptors)
+	return collector
+}
+
+func (c *Collector) AddDescriptors(fileDescriptors []*desc.FileDescriptor) {
+	c.addDescriptorsToCache(fileDescriptors)
+}
+
+func (c *Collector) addDescriptorsToCache(fileDescriptors []*desc.FileDescriptor) {
 	for _, descriptor := range fileDescriptors {
 		messages := descriptor.GetMessageTypes()
 		services := descriptor.GetServices()
 		for _, message := range messages {
-			messageCache[message.GetFullyQualifiedName()] = message
+			c.MessageCache[message.GetFullyQualifiedName()] = message
 		}
 		for _, service := range services {
-			serviceCache[service.GetFullyQualifiedName()] = service
+			c.ServiceCache[service.GetFullyQualifiedName()] = service
 		}
-	}
-	return &Collector{
-		MessageCache: messageCache,
-		ServiceCache: serviceCache,
 	}
 }
 

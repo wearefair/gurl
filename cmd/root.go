@@ -65,10 +65,19 @@ func curl(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	walker := cligrpc.NewProtoWalker()
-	paths := append(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths...)
-	walker.Collect(paths)
-	collector := cligrpc.NewCollector(walker.Descriptors)
+
+	localwalker := cligrpc.NewProtoWalker()
+	servicewalker := cligrpc.NewProtoWalker()
+	constructor := cligrpc.NewConstructor()
+
+	localwalker.Collect(config.Instance().Local.ImportPaths)
+	servicewalker.Collect(config.Instance().Local.ServicePaths)
+
+	collector := cligrpc.NewCollector(localwalker.GetFileDescriptors())
+
+	// Register service types into known type registry so they can be constructed properly
+	constructor.RegisterFileDescriptors(servicewalker.GetFileDescriptors())
+
 	serviceDescriptor, err := collector.GetService(uriWrapper.Service)
 	if err != nil {
 		logger.Error(err.Error())
@@ -87,7 +96,6 @@ func curl(cmd *cobra.Command, args []string) error {
 		logger.Error(err.Error())
 		return err
 	}
-	constructor := cligrpc.NewConstructor()
 	message, err := constructor.Construct(messageDescriptor, data)
 	if err != nil {
 		return err
@@ -117,15 +125,9 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	}
 	stub := grpcdynamic.NewStub(clientConn)
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
+	// TODO: Handle different cases for client, server, and bidi streaming
 	methodProto.ClientStreaming = util.PointerifyBool(false)
 	methodProto.ServerStreaming = util.PointerifyBool(false)
-	//	if *methodProto.ClientStreaming {
-	//		if *methodProto.ServerStreaming {
-	//		} else { // Client streaming only
-	//		}
-	//	} else if *methodProto.ServerStreaming { // Server streaming
-	//	} else { // Unary streaming
-	//	}
 	response, err := stub.InvokeRpc(context.Background(), methodDescriptor, message)
 	if err != nil {
 		logger.Error(err.Error())

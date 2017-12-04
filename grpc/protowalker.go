@@ -18,7 +18,7 @@ var (
 
 // ProtoWalker walks directories and collects proto file descriptors
 type ProtoWalker struct {
-	Descriptors []*desc.FileDescriptor
+	descriptors []*desc.FileDescriptor
 	Paths       *set.Set
 }
 
@@ -58,6 +58,11 @@ func (p *ProtoWalker) Collect(trees []string) error {
 		logger.Error(err.Error())
 		return err
 	}
-	p.Descriptors = fileDescriptors
+	p.descriptors = fileDescriptors
 	return nil
+}
+
+// GetFileDescriptors returns file descriptors on the walker
+func (p *ProtoWalker) GetFileDescriptors() []*desc.FileDescriptor {
+	return p.descriptors
 }

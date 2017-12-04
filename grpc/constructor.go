@@ -21,6 +21,7 @@ func NewConstructor() *Constructor {
 }
 
 func (c *Constructor) Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
+	// Find way to either edit this to use the timestamp.Timestamp{} type
 	message := c.Factory.NewDynamicMessage(messageDescriptor)
 	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), message)
 	if err != nil {
@@ -40,4 +41,14 @@ func (c *Constructor) overrideKnownTypes() {
 	}
 	message := dynamic.NewMessage(messageDescriptor)
 	registry.AddKnownType(message)
+}
+
+func (c *Constructor) RegisterFileDescriptors(fileDescriptors []*desc.FileDescriptor) {
+	for _, fileDescriptor := range fileDescriptors {
+		messageDescriptors := fileDescriptor.GetMessageTypes()
+		for _, messageDescriptor := range messageDescriptors {
+			message := dynamic.NewMessage(messageDescriptor)
+			c.Factory.GetKnownTypeRegistry().AddKnownType(message)
+		}
+	}
 }
