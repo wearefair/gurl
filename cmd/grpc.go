@@ -19,6 +19,6 @@ func init() {
 func listServices(cmd *cobra.Command, args []string) {
 	walker := cligrpc.NewProtoWalker()
 	walker.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
-	collector := cligrpc.NewCollector(walker.GetImportFileDescriptors())
+	collector := cligrpc.NewCollector(walker.GetFileDescriptors())
 	collector.ListServices()
 }

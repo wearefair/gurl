@@ -69,12 +69,9 @@ func curl(cmd *cobra.Command, args []string) error {
 	walker := cligrpc.NewProtoWalker()
 	walker.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
 
-	collector := cligrpc.NewCollector(walker.GetImportFileDescriptors())
+	collector := cligrpc.NewCollector(walker.GetFileDescriptors())
 
 	constructor := cligrpc.NewConstructor()
-
-	// Register service types into known type registry so they can be constructed properly
-	constructor.RegisterFileDescriptors(walker.GetServiceFileDescriptors())
 
 	serviceDescriptor, err := collector.GetService(uriWrapper.Service)
 	if err != nil {
