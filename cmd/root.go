@@ -52,8 +52,8 @@ func init() {
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	RootCmd.Flags().StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
 	RootCmd.Flags().StringVarP(&data, "data", "d", "", "Data, as JSON, to send to the gRPC service")
-	//	RootCmd.MarkFlagRequired("uri")
-	//	RootCmd.MarkFlagRequired("data")
+	RootCmd.MarkFlagRequired("uri")
+	RootCmd.MarkFlagRequired("data")
 }
 
 func initConfig() {
