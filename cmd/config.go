@@ -17,14 +17,10 @@ func init() {
 
 func configure(cmd *cobra.Command, args []string) {
 	config.Read()
-	err := config.Prompt()
-	if err != nil {
-		logger.Fatal(err.Error())
-	}
+	config.Prompt()
 	conf := config.Instance()
-	err = config.Save(conf)
+	err := config.Save(conf)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
-
 }

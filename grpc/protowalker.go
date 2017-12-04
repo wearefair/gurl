@@ -7,7 +7,6 @@ import (
 
 	set "gopkg.in/fatih/set.v0"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/wearefair/gurl/log"
@@ -19,13 +18,13 @@ var (
 
 // ProtoWalker walks directories and collects proto file descriptors
 type ProtoWalker struct {
-	Descriptors []*desc.FileDescriptor
-	Paths       *set.Set
+	fileDescriptors []*desc.FileDescriptor
+	paths           *set.Set
 }
 
 // NewProtoWalker creates instance of ProtoWalker
 func NewProtoWalker() *ProtoWalker {
-	return &ProtoWalker{Paths: set.New()}
+	return &ProtoWalker{paths: set.New()}
 }
 
 // Walk all directories and collects dirs where protos are found. This needs to be done
@@ -37,9 +36,9 @@ func (p *ProtoWalker) walkDirs(tree string) {
 			pathSplit := strings.SplitAfter(path, tree+"/")
 			// This is not going to end well - add conditional logic around it if path is '.'
 			if len(pathSplit) < 2 {
-				p.Paths.Add(pathSplit[0])
+				p.paths.Add(pathSplit[0])
 			} else {
-				p.Paths.Add(pathSplit[1])
+				p.paths.Add(pathSplit[1])
 			}
 		}
 		return nil
@@ -47,32 +46,23 @@ func (p *ProtoWalker) walkDirs(tree string) {
 }
 
 // Collect picks up and parses proto paths
-func (p *ProtoWalker) Collect(tree string) error {
-	p.walkDirs(tree)
-	parser := protoparse.Parser{
-		ImportPaths: []string{tree},
+func (p *ProtoWalker) Collect(importPaths, servicePaths []string) error {
+	concat := append(importPaths, servicePaths...)
+	for _, path := range servicePaths {
+		p.walkDirs(path)
 	}
-	fileDescriptors, err := parser.ParseFiles(set.StringSlice(p.Paths)...)
+	parser := protoparse.Parser{
+		ImportPaths: concat,
+	}
+	descriptors, err := parser.ParseFiles(set.StringSlice(p.paths)...)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
-	p.Descriptors = fileDescriptors
+	p.fileDescriptors = descriptors
 	return nil
 }
 
-func (p *ProtoWalker) ListMessages() {
-	messages := []*desc.MessageDescriptor{}
-	for _, descriptor := range p.Descriptors {
-		messages = append(messages, descriptor.GetMessageTypes()...)
-	}
-	spew.Dump(messages)
-}
-
-func (p *ProtoWalker) ListServices() {
-	services := []*desc.ServiceDescriptor{}
-	for _, descriptor := range p.Descriptors {
-		services = append(services, descriptor.GetServices()...)
-	}
-	spew.Dump(services)
+func (p *ProtoWalker) GetFileDescriptors() []*desc.FileDescriptor {
+	return p.fileDescriptors
 }

@@ -7,9 +7,8 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"sync"
-
-	"go.uber.org/zap"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -17,8 +16,8 @@ import (
 )
 
 const (
-	configDir  = ".grpccurl"
-	configFile = ".grpccurl/config"
+	configDir  = ".gurl"
+	configFile = ".gurl/config"
 )
 
 var (
@@ -35,8 +34,9 @@ type Github struct {
 type Config struct {
 	configured bool
 	Local      struct {
-		ProtoDir string `json:"proto_dir"`
-	}
+		ImportPaths  []string `json:"import_paths"`
+		ServicePaths []string `json:"service_paths"`
+	} `json:"local"`
 }
 
 func homeDir() string {
@@ -59,7 +59,6 @@ func Read() *Config {
 	config := Instance()
 	configPath := filepath.Join(homeDir(), configFile)
 	if _, err := os.Stat(configPath); err != nil {
-		logger.Warn(err.Error(), zap.String("config", configPath))
 		return nil
 	}
 	contents, err := ioutil.ReadFile(configPath)
@@ -90,17 +89,24 @@ func Save(config *Config) error {
 }
 
 // Prompt user for config inputs
-func Prompt() error {
+func Prompt() {
 	config := Instance()
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Protobuf directory: ")
+	config.Local.ImportPaths = parsePath(reader, "Import paths (comma delimited)")
+	config.Local.ServicePaths = parsePath(reader, "Service paths (comma delimited)")
+}
+
+func parsePath(reader *bufio.Reader, description string) []string {
+	fmt.Println(description + ": ")
 	val, err := reader.ReadString('\n')
 	if err != nil {
 		logger.Error(err.Error())
-		return err
+		return nil
 	}
 	// Strip newline
 	val = val[:len(val)-1]
-	config.Local.ProtoDir = val
-	return nil
+	if val == "" {
+		return nil
+	}
+	return strings.Split(val, ",")
 }

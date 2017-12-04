@@ -8,9 +8,9 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/spf13/cobra"
 	"github.com/wearefair/gurl/config"
@@ -52,8 +52,8 @@ func init() {
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	RootCmd.Flags().StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
 	RootCmd.Flags().StringVarP(&data, "data", "d", "", "Data, as JSON, to send to the gRPC service")
-	//	RootCmd.MarkFlagRequired("uri")
-	//	RootCmd.MarkFlagRequired("data")
+	RootCmd.MarkFlagRequired("uri")
+	RootCmd.MarkFlagRequired("data")
 }
 
 func initConfig() {
@@ -65,9 +65,14 @@ func curl(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	walker := cligrpc.NewProtoWalker()
-	walker.Collect(config.Instance().Local.ProtoDir)
-	collector := cligrpc.NewCollector(walker.Descriptors)
+	walker.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
+
+	collector := cligrpc.NewCollector(walker.GetFileDescriptors())
+
+	constructor := cligrpc.NewConstructor()
+
 	serviceDescriptor, err := collector.GetService(uriWrapper.Service)
 	if err != nil {
 		logger.Error(err.Error())
@@ -86,8 +91,7 @@ func curl(cmd *cobra.Command, args []string) error {
 		logger.Error(err.Error())
 		return err
 	}
-	validator := cligrpc.NewValidator()
-	message, err := validator.Validate(messageDescriptor, data)
+	message, err := constructor.Construct(messageDescriptor, data)
 	if err != nil {
 		return err
 	}
@@ -106,7 +110,7 @@ func curl(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message *dynamic.Message) ([]byte, error) {
+func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
 	address := fmt.Sprintf("%s:%s", uri.Host, uri.Port)
 	// Figure out auth later
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
@@ -116,15 +120,9 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	}
 	stub := grpcdynamic.NewStub(clientConn)
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
+	// TODO: Handle different cases for client, server, and bidi streaming
 	methodProto.ClientStreaming = util.PointerifyBool(false)
 	methodProto.ServerStreaming = util.PointerifyBool(false)
-	//	if *methodProto.ClientStreaming {
-	//		if *methodProto.ServerStreaming {
-	//		} else { // Client streaming only
-	//		}
-	//	} else if *methodProto.ServerStreaming { // Server streaming
-	//	} else { // Unary streaming
-	//	}
 	response, err := stub.InvokeRpc(context.Background(), methodDescriptor, message)
 	if err != nil {
 		logger.Error(err.Error())
