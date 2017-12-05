@@ -32,7 +32,7 @@ mkdir -p release
 
 for OS in ${DEP_BUILD_PLATFORMS[@]}; do
   for ARCH in ${DEP_BUILD_ARCHS[@]}; do
-    NAME="dep-$OS-$ARCH"
+    NAME="gurl-$OS-$ARCH"
     if [ "$OS" == "windows" ]; then
       NAME="$NAME.exe"
     fi
