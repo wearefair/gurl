@@ -9,8 +9,13 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
+	"github.com/wearefair/gurl/log"
 
 	set "gopkg.in/fatih/set.v0"
+)
+
+var (
+	logger = log.Logger()
 )
 
 func Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
