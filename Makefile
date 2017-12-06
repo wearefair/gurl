@@ -1,0 +1,2 @@
+build:
+	./build-all.bash

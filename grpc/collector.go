@@ -59,7 +59,9 @@ func toChar(i int) rune {
 func (c *Collector) GetMessage(name string) (*desc.MessageDescriptor, error) {
 	descriptor, ok := c.MessageCache[name]
 	if !ok {
-		return nil, fmt.Errorf("No message descriptor found for %s", name)
+		err := fmt.Errorf("No message descriptor found for %s", name)
+		logger.Error(err.Error())
+		return nil, err
 	}
 	return descriptor, nil
 }
@@ -67,7 +69,9 @@ func (c *Collector) GetMessage(name string) (*desc.MessageDescriptor, error) {
 func (c *Collector) GetService(name string) (*desc.ServiceDescriptor, error) {
 	descriptor, ok := c.ServiceCache[name]
 	if !ok {
-		return nil, fmt.Errorf("No service descriptor found for %s", name)
+		err := fmt.Errorf("No service descriptor found for %s", name)
+		logger.Error(err.Error())
+		return nil, err
 	}
 	return descriptor, nil
 }

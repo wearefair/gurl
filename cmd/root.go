@@ -66,32 +66,31 @@ func curl(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	walker := cligrpc.NewProtoWalker()
-	walker.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
-
-	collector := cligrpc.NewCollector(walker.GetFileDescriptors())
-
-	constructor := cligrpc.NewConstructor()
-
-	serviceDescriptor, err := collector.GetService(uriWrapper.Service)
+	descriptors, err := cligrpc.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
 	if err != nil {
-		logger.Error(err.Error())
 		return err
 	}
+
+	collector := cligrpc.NewCollector(descriptors)
+	serviceDescriptor, err := collector.GetService(uriWrapper.Service)
+	if err != nil {
+		return err
+	}
+
 	methodDescriptor := serviceDescriptor.FindMethodByName(uriWrapper.Method)
 	if methodDescriptor == nil {
 		err := fmt.Errorf("No method %s found", uriWrapper.Method)
 		logger.Error(err.Error())
 		return err
 	}
+
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
 	messageDescriptor, err := collector.GetMessage(util.NormalizeMessageName(*methodProto.InputType))
 	if err != nil {
-		err := fmt.Errorf("No message %s found", util.NormalizeMessageName(*methodProto.InputType))
-		logger.Error(err.Error())
 		return err
 	}
-	message, err := constructor.Construct(messageDescriptor, data)
+
+	message, err := cligrpc.Construct(messageDescriptor, data)
 	if err != nil {
 		return err
 	}
