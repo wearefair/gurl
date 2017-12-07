@@ -37,6 +37,7 @@ type Config struct {
 		ImportPaths  []string `json:"import_paths"`
 		ServicePaths []string `json:"service_paths"`
 	} `json:"local"`
+	KubeConfig string
 }
 
 func homeDir() string {
@@ -88,25 +89,38 @@ func Save(config *Config) error {
 	return ioutil.WriteFile(filepath.Join(homeDir(), configFile), contents, 0644)
 }
 
-// Prompt user for config inputs
-func Prompt() {
-	config := Instance()
-	reader := bufio.NewReader(os.Stdin)
-	config.Local.ImportPaths = parsePath(reader, "Import paths (comma delimited)")
-	config.Local.ServicePaths = parsePath(reader, "Service paths (comma delimited)")
+func defaults() {
+	homeDir := os.Getenv("HOME")
+	kubePath := filepath.Join(homeDir, ".kube/config")
+	Instance().KubeConfig = kubePath
 }
 
-func parsePath(reader *bufio.Reader, description string) []string {
+// Prompt user for config inputs
+func Prompt() {
+	defaults()
+	config := Instance()
+	reader := bufio.NewReader(os.Stdin)
+	config.Local.ImportPaths = parseProtoPaths(reader, "Import paths (comma delimited)", "")
+	config.Local.ServicePaths = parseProtoPaths(reader, "Service paths (comma delimited)", "")
+	config.KubeConfig = parsePath(reader, "Kubeconfig path", config.KubeConfig)
+}
+
+func parseProtoPaths(reader *bufio.Reader, description string, existing string) []string {
+	val := parsePath(reader, description, existing)
+	return strings.Split(val, ",")
+}
+
+func parsePath(reader *bufio.Reader, description string, existing string) string {
 	fmt.Println(description + ": ")
 	val, err := reader.ReadString('\n')
 	if err != nil {
 		logger.Error(err.Error())
-		return nil
+		return ""
 	}
 	// Strip newline
 	val = val[:len(val)-1]
 	if val == "" {
-		return nil
+		return existing
 	}
-	return strings.Split(val, ",")
+	return val
 }

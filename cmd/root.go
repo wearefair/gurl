@@ -29,6 +29,7 @@ var (
 	logger = log.Logger()
 	data   string
 	// host:port/service_name/method_name
+	port      int
 	uri       string
 	uriRegexp = regexp.MustCompile(uriRegex)
 )
@@ -50,6 +51,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.Flags().IntVarP(&port, "port", "p", 0, "Local port to set up remote forwarding. Will default to the port set in the uri if not set here")
 	RootCmd.Flags().StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
 	RootCmd.Flags().StringVarP(&data, "data", "d", "", "Data, as JSON, to send to the gRPC service")
 	RootCmd.MarkFlagRequired("uri")
