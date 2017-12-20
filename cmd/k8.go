@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
-	"github.com/wearefair/bouncer/k8"
 	"github.com/wearefair/gurl/config"
+	"github.com/wearefair/gurl/k8"
 )
 
 var (
@@ -11,7 +12,7 @@ var (
 	remotePort int
 )
 
-var portforwardCmd = &cobra.Command{
+var portForwardCmd = &cobra.Command{
 	Use:   "port-forward",
 	Short: "Port forward to Kubernetes",
 	RunE:  portForward,
@@ -24,8 +25,10 @@ func init() {
 }
 
 func portForward(cmd *cobra.Command, args []string) error {
-	k8, err := k8.New(config.Instance().KubeConfig)
+	k, err := k8.New(config.Instance().KubeConfig)
 	if err != nil {
 		return err
 	}
+	spew.Dump(k.GetPodNameAndRemotePort("fair-auth", "50051"))
+	return nil
 }

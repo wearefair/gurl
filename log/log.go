@@ -26,3 +26,8 @@ func instance() *zap.Logger {
 func Logger() *zap.Logger {
 	return instance()
 }
+
+func WrapError(err error) error {
+	Logger().Error(err.Error())
+	return err
+}
