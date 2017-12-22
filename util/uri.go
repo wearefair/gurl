@@ -10,7 +10,7 @@ import (
 
 const (
 	// protocol://context/service:port/grpc/service-method
-	uriRegex = `(?P<protocol>[a-z0-9]{2,4})(?:\:\/\/)(?P<context>[0-9a-z._-]+)(?:\/)(?P<service>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})(?:\/)(?P<rpc>[0-9a-zA-Z._-]+)(?:\/)(?P<method>[0-9a-zA-Z._-]+)`
+	uriRegex = `((?P<protocol>[a-z0-9]{2,4})(?:\:\/\/)((?P<context>[0-9a-z._-]+)(?:\/))?)?(?P<service>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})(?:\/)(?P<rpc>[0-9a-zA-Z._-]+)(?:\/)(?P<method>[0-9a-zA-Z._-]+)`
 	// Regexp that matches the expected uri structure - allows for -_. as special characters
 	//	uriRegex = `([a-z]+)(?:\:)([0-9]{2,5})(?:\/)([0-9a-zA-Z._-]+)(?:\/)([0-9a-zA-Z._-]+)`
 )

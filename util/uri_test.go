@@ -24,6 +24,27 @@ func TestParseURI(t *testing.T) {
 			Err: nil,
 		},
 		{
+			Input: "localhost:3000/fakeService.Service/fakeMethod",
+			Expected: &URI{
+				Service: "localhost",
+				Port:    "3000",
+				RPC:     "fakeService.Service",
+				Method:  "fakeMethod",
+			},
+			Err: nil,
+		},
+		{
+			Input: "http://localhost:3000/fakeService.Service/fakeMethod",
+			Expected: &URI{
+				Protocol: "http",
+				Service:  "localhost",
+				Port:     "3000",
+				RPC:      "fakeService.Service",
+				Method:   "fakeMethod",
+			},
+			Err: nil,
+		},
+		{
 			Input:    "fakeNews",
 			Expected: nil,
 			Err:      errInvalidURIFormat,
