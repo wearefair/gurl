@@ -3,7 +3,6 @@ package util
 import (
 	"errors"
 	"regexp"
-	"strings"
 
 	"github.com/wearefair/gurl/log"
 )
@@ -11,16 +10,14 @@ import (
 const (
 	// protocol://context/service:port/grpc/service-method
 	uriRegex = `((?P<protocol>[a-z0-9]{2,4})(?:\:\/\/)((?P<context>[0-9a-z._-]+)(?:\/))?)?(?P<service>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})(?:\/)(?P<rpc>[0-9a-zA-Z._-]+)(?:\/)(?P<method>[0-9a-zA-Z._-]+)`
-	// Regexp that matches the expected uri structure - allows for -_. as special characters
-	//	uriRegex = `([a-z]+)(?:\:)([0-9]{2,5})(?:\/)([0-9a-zA-Z._-]+)(?:\/)([0-9a-zA-Z._-]+)`
+
+	K8Protocol = "k8"
 )
 
 var (
 	errInvalidURIFormat = errors.New("URI must be in the form of host:port/service/method")
 	uriRegexp           = regexp.MustCompile(uriRegex)
 )
-
-type ProtocolType string
 
 // Represents a deconstructed uri structure
 type URI struct {
@@ -61,13 +58,4 @@ func ParseURI(uri string) (*URI, error) {
 		Method:   namedMatches["method"],
 	}
 	return uriWrapper, nil
-}
-
-// Probably needs to be more sophisticated than this, but for now just
-// checks to see if the uri starts with k8
-func remoteURI(uri string) bool {
-	if strings.HasPrefix(uri, "k8://") {
-		return true
-	}
-	return false
 }

@@ -12,7 +12,7 @@ gurl config
 ### Example
 Request format:
 ```
-gurl -u localhost:50051/service.name.here/method.name.here -d '{ "field name": "field value" }'
+gurl -u k8://k8-context/localhost:50051/service.name.here/method.name.here -d '{ "field name": "field value" }'
 ```
 
 ### Reference for JSON Types

@@ -51,39 +51,39 @@ func New(kubeconfig string) (*K8, error) {
 
 // Use endpoint for pod name
 // Use service for targetPort for pod
-func (k *K8) GetPodNameAndRemotePort(serviceName, port string) (string, int, error) {
+func (k *K8) GetPodNameAndRemotePort(serviceName, port string) (string, string, error) {
 	podName, err := k.getPodNameFromEndpoint(serviceName)
 	if err != nil {
-		return "", 0, err
+		return "", "", err
 	}
 	targetPort, err := k.getPodTargetPort(serviceName, port)
 	if err != nil {
-		return "", 0, err
+		return "", "", err
 	}
 	return podName, targetPort, nil
 }
 
-func (k *K8) getPodTargetPort(serviceName, port string) (int, error) {
+func (k *K8) getPodTargetPort(serviceName, port string) (string, error) {
 	service, err := k.Client.CoreV1().Services(defaultNamespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
-		return 0, log.WrapError(err)
+		return "", log.WrapError(err)
 	}
 	ports := service.Spec.Ports
 	if len(ports) < 1 {
 		err := fmt.Errorf("No ports found for %s", serviceName)
-		return 0, log.WrapError(err)
+		return "", log.WrapError(err)
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		return 0, log.WrapError(err)
+		return "", log.WrapError(err)
 	}
 	for _, port := range ports {
 		if port.Port == int32(portInt) {
-			return int(port.TargetPort.IntVal), nil
+			return strconv.Itoa(int(port.TargetPort.IntVal)), nil
 		}
 	}
 	err = fmt.Errorf("No ports found for %s", serviceName)
-	return 0, log.WrapError(err)
+	return "", log.WrapError(err)
 }
 
 // Just returning the first pod name found
