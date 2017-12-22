@@ -12,12 +12,14 @@ func TestParseURI(t *testing.T) {
 		Err      error
 	}{
 		{
-			Input: "localhost:3000/fakeService.Service/fakeMethod",
+			Input: "k8://sandbox-general/public-api:80/fakeService.Service/fakeMethod",
 			Expected: &URI{
-				Host:    "localhost",
-				Port:    "3000",
-				Service: "fakeService.Service",
-				Method:  "fakeMethod",
+				Protocol: "k8",
+				Context:  "sandbox-general",
+				Service:  "public-api",
+				Port:     "80",
+				RPC:      "fakeService.Service",
+				Method:   "fakeMethod",
 			},
 			Err: nil,
 		},

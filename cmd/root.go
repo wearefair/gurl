@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -20,18 +19,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	// Regexp that matches the expected uri structure - allows for -_. as special characters
-	uriRegex = `([a-z]+)(?:\:)([0-9]{5})(?:\/)([0-9a-zA-Z._-]+)(?:\/)([0-9a-zA-Z._-]+)`
-)
-
 var (
 	logger = log.Logger()
 	data   string
 	// host:port/service_name/method_name
-	port      int
-	uri       string
-	uriRegexp = regexp.MustCompile(uriRegex)
+	port int
+	uri  string
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -112,7 +105,7 @@ func curl(cmd *cobra.Command, args []string) error {
 }
 
 func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
-	address := fmt.Sprintf("%s:%s", uri.Host, uri.Port)
+	address := fmt.Sprintf("%s:%s", "localhost", uri.Port)
 	// Figure out auth later
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
