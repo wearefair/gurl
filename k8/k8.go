@@ -6,6 +6,9 @@ import (
 	"os"
 	"strconv"
 
+	"go.uber.org/zap"
+
+	"github.com/davecgh/go-spew/spew"
 	"github.com/wearefair/gurl/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -33,13 +36,12 @@ type K8 struct {
 func New(kubeconfig string) (*K8, error) {
 	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, err
+		return nil, log.WrapError(err)
 	}
+	spew.Dump(cfg)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, err
+		return nil, log.WrapError(err)
 	}
 	return &K8{
 		Client:       clientset,
@@ -105,6 +107,7 @@ func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
 }
 
 func (k *K8) Forward(podName string, localPort, remotePort string) error {
+	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
 	req := k.Client.Discovery().RESTClient().Post().
 		Resource("pods").
 		Namespace(defaultNamespace).
@@ -130,5 +133,19 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 	if err != nil {
 		return log.WrapError(err)
 	}
-	return fw.ForwardPorts()
+	errChan := make(chan error)
+	go func() {
+		errChan <- fw.ForwardPorts()
+	}()
+	if err := <-errChan; err != nil {
+		return log.WrapError(err)
+	}
+	return nil
+}
+
+func k8Config() {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
+
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig()
 }

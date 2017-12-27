@@ -102,8 +102,7 @@ func curl(cmd *cobra.Command, args []string) error {
 	// Prettifying JSON
 	err = json.Indent(&prettyResponse, response, "", "  ")
 	if err != nil {
-		logger.Error(err.Error())
-		return err
+		return log.WrapError(err)
 	}
 	fmt.Printf("Response:\n%s\n", prettyResponse.String())
 	return nil
@@ -118,8 +117,7 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 	// Figure out auth later
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, err
+		return nil, log.WrapError(err)
 	}
 	stub := grpcdynamic.NewStub(clientConn)
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
@@ -128,14 +126,12 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 	methodProto.ServerStreaming = util.PointerifyBool(false)
 	response, err := stub.InvokeRpc(context.Background(), methodDescriptor, message)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, err
+		return nil, log.WrapError(err)
 	}
 	marshaler := &runtime.JSONPb{}
 	responseJSON, err := marshaler.Marshal(response)
 	if err != nil {
-		logger.Error(err.Error())
-		return nil, err
+		return nil, log.WrapError(err)
 	}
 	return responseJSON, nil
 }
