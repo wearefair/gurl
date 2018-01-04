@@ -11,10 +11,13 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/wearefair/gurl/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	streamspdy "k8s.io/apimachinery/pkg/util/httpstream/spdy"
+	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/portforward"
+	"k8s.io/client-go/transport"
 	"k8s.io/client-go/transport/spdy"
 )
 
@@ -106,6 +109,15 @@ func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
 	return "", nil
 }
 
+// TODO: https://github.com/kubernetes/kubernetes/blob/dd9981d038012c120525c9e6df98b3beb3ef19e1/pkg/kubectl/cmd/portforward_test.go
+// https://github.com/kubernetes/client-go/blob/master/rest/config.go#L88 -> Client config that we need to refer to and clean the TLS configurations from
+// Error: 2018-01-03T20:55:58.241-0800	ERROR	log/log.go:31	error upgrading connection: unable to upgrade connection: Unauthorized
+// We can probably construct the TLS configs from this - https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/client/kubelet_client.go#L68 maybe?
+// Looks like since we have a bearer token, we can construct the roundtripper from this - https://github.com/kubernetes/client-go/blob/master/transport/round_trippers.go#L304
+// SPDY is deprecated, apparently - https://github.com/kubernetes-incubator/client-python/issues/58 - needs more investigation, but I don't necessarily think this is the issue - we may just have to construct the restClient.Config another way
+// https://github.com/kubernetes/kubernetes/issues/7452 - so how do we portforward without spdy
+// Portforwarding via websockets - https://github.com/kubernetes/kubernetes/pull/50428
+// https://github.com/kubernetes/features/issues/384
 func (k *K8) Forward(podName string, localPort, remotePort string) error {
 	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
 	req := k.Client.Discovery().RESTClient().Post().
@@ -113,10 +125,28 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 		Namespace(defaultNamespace).
 		Name(podName).
 		SubResource("portforward")
-	transport, upgrader, err := spdy.RoundTripperFor(k.Config)
+	// Attempt to construct transport from the bearer token
+	transport := transport.NewBearerAuthRoundTripper(k.Config.BearerToken, http.DefaultTransport)
+	tlsConfig, err := net.TLSClientConfig(transport)
+	spew.Dump(tlsConfig)
 	if err != nil {
 		return log.WrapError(err)
 	}
+	// https://github.com/kubernetes/apimachinery/blob/master/pkg/util/httpstream/spdy/roundtripper.go#L83
+	// Have to custom construct the upgrader for this...
+	upgrader := streamspdy.NewSpdyRoundTripper(tlsConfig, false)
+	// the http.RoundTripper is nil in here, which is why this upgrade fails
+	// Maybe use DefaultTransport https://golang.org/src/net/http/transport.go#L40
+	//transport, upgrader, err := spdy.RoundTripperFor(k.Config)
+
+	//_, upgrader, err := spdy.RoundTripperFor(k.Config)
+	//if err != nil {
+	//	return log.WrapError(err)
+	//}
+
+	// https://github.com/kubernetes/client-go/blob/master/transport/spdy/spdy.go#L36
+	// The TLS config in this is nil, which is why this is blowing up too
+	// https://github.com/kubernetes/apimachinery/blob/master/pkg/util/net/http.go#L136-L155 - TLS config reference
 	dialer := spdy.NewDialer(upgrader,
 		&http.Client{Transport: transport},
 		"POST",
@@ -134,6 +164,7 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 		return log.WrapError(err)
 	}
 	errChan := make(chan error)
+	// We're blowing up here still...
 	go func() {
 		errChan <- fw.ForwardPorts()
 	}()
@@ -143,9 +174,9 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 	return nil
 }
 
-func k8Config() {
+func k8Config() clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
 
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig()
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 }
