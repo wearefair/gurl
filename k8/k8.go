@@ -2,6 +2,7 @@ package k8
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -14,7 +15,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/portforward"
-	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/client-go/transport/spdy"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 var (
@@ -116,11 +118,11 @@ func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
 // https://github.com/kubernetes/kubernetes/blob/v1.7.0/pkg/kubectl/cmd/portforward.go - How it's done in the CLI tool
 func (k *K8) Forward(podName string, localPort, remotePort string) error {
 	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
-	req := k.Client.Discovery().RESTClient().Post().
-		Resource("pods").
-		Namespace(defaultNamespace).
-		Name(podName).
-		SubResource("portforward")
+	//req := k.Client.Discovery().RESTClient().Post().
+	//	Resource("pods").
+	//	Namespace(defaultNamespace).
+	//	Name(podName).
+	//	SubResource("portforward")
 	// Attempt to construct transport from the bearer token
 
 	//transport := transport.NewBearerAuthRoundTripper(k.Config.BearerToken, http.DefaultTransport)
@@ -152,10 +154,33 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 	//	req.URL(),
 	//)
 
-	dialer, err := remotecommand.NewSPDYExecutor(k.Config, "POST", req.URL())
+	f := cmdutil.NewFactory(nil)
+	clientset, err := f.ClientSet()
 	if err != nil {
 		return log.WrapError(err)
 	}
+	podClient := clientset.Core()
+	conf, err := f.ClientConfig()
+	if err != nil {
+		return log.WrapError(err)
+	}
+	restClient, err := f.RESTClient()
+	if err != nil {
+		return log.WrapError(err)
+	}
+
+	pod, err := podClient.Pods(defaultNamespace).Get(podName, metav1.GetOptions{})
+	if err != nil {
+		return log.WrapError(err)
+	}
+	req := restClient.Post().Resource("pods").Namespace(defaultNamespace).Name(podName).SubResource("portforward")
+
+	transport, upgrader, err := spdy.RoundTripperFor(conf)
+	if err != nil {
+		return log.WrapError(err)
+	}
+
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
 	fw, err := portforward.New(dialer,
 		[]string{localPort, remotePort},
 		k.StopChannel,

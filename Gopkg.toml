@@ -51,3 +51,15 @@
 [[constraint]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
+
+[[override]]
+  name = "github.com/russross/blackfriday"
+  version = "v1.5"
+
+[[override]]
+  name = "github.com/docker/distribution"
+  revision = "5cb406d511b7b9163bff9b6439072e4892e5ae3b"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.9.2"
