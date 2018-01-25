@@ -8,7 +8,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/wearefair/gurl/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -39,7 +38,6 @@ func New(kubeconfig string) (*K8, error) {
 	if err != nil {
 		return nil, log.WrapError(err)
 	}
-	spew.Dump(cfg)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return nil, log.WrapError(err)
@@ -118,48 +116,12 @@ func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
 // https://github.com/kubernetes/kubernetes/blob/v1.7.0/pkg/kubectl/cmd/portforward.go - How it's done in the CLI tool
 func (k *K8) Forward(podName string, localPort, remotePort string) error {
 	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
-	//req := k.Client.Discovery().RESTClient().Post().
-	//	Resource("pods").
-	//	Namespace(defaultNamespace).
-	//	Name(podName).
-	//	SubResource("portforward")
-	// Attempt to construct transport from the bearer token
-
-	//transport := transport.NewBearerAuthRoundTripper(k.Config.BearerToken, http.DefaultTransport)
-	//tlsConfig, err := net.TLSClientConfig(transport)
-	//if err != nil {
-	//	return log.WrapError(err)
-	//}
-
-	// https://github.com/kubernetes/apimachinery/blob/master/pkg/util/httpstream/spdy/roundtripper.go#L83
-	// Have to custom construct the upgrader for this...
-
-	// upgrader := streamspdy.NewSpdyRoundTripper(tlsConfig, false)
-
-	// the http.RoundTripper is nil in here, which is why this upgrade fails
-	// Maybe use DefaultTransport https://golang.org/src/net/http/transport.go#L40
-	//transport, upgrader, err := spdy.RoundTripperFor(k.Config)
-
-	//_, upgrader, err := spdy.RoundTripperFor(k.Config)
-	//if err != nil {
-	//	return log.WrapError(err)
-	//}
-
-	// https://github.com/kubernetes/client-go/blob/master/transport/spdy/spdy.go#L36
-	// The TLS config in this is nil, which is why this is blowing up too
-	// https://github.com/kubernetes/apimachinery/blob/master/pkg/util/net/http.go#L136-L155 - TLS config reference
-	//dialer := spdy.NewDialer(upgrader,
-	//	&http.Client{Transport: transport},
-	//	"POST",
-	//	req.URL(),
-	//)
-
 	f := cmdutil.NewFactory(nil)
-	clientset, err := f.ClientSet()
-	if err != nil {
-		return log.WrapError(err)
-	}
-	podClient := clientset.Core()
+	//clientset, err := f.ClientSet()
+	//if err != nil {
+	//	return log.WrapError(err)
+	//}
+	//podClient := clientset.Core()
 	conf, err := f.ClientConfig()
 	if err != nil {
 		return log.WrapError(err)
@@ -169,10 +131,10 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 		return log.WrapError(err)
 	}
 
-	pod, err := podClient.Pods(defaultNamespace).Get(podName, metav1.GetOptions{})
-	if err != nil {
-		return log.WrapError(err)
-	}
+	//_, err = podClient.Pods(defaultNamespace).Get(podName, metav1.GetOptions{})
+	//if err != nil {
+	//	return log.WrapError(err)
+	//}
 	req := restClient.Post().Resource("pods").Namespace(defaultNamespace).Name(podName).SubResource("portforward")
 
 	transport, upgrader, err := spdy.RoundTripperFor(conf)
@@ -192,7 +154,6 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 		return log.WrapError(err)
 	}
 	errChan := make(chan error)
-	// We're blowing up here still...
 	go func() {
 		errChan <- fw.ForwardPorts()
 	}()
