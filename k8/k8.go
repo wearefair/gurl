@@ -105,23 +105,9 @@ func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
 	return "", nil
 }
 
-// TODO: https://github.com/kubernetes/kubernetes/blob/dd9981d038012c120525c9e6df98b3beb3ef19e1/pkg/kubectl/cmd/portforward_test.go
-// https://github.com/kubernetes/client-go/blob/master/rest/config.go#L88 -> Client config that we need to refer to and clean the TLS configurations from
-// We can probably construct the TLS configs from this - https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/client/kubelet_client.go#L68 maybe?
-// Looks like since we have a bearer token, we can construct the roundtripper from this - https://github.com/kubernetes/client-go/blob/master/transport/round_trippers.go#L304
-// SPDY is deprecated, apparently - https://github.com/kubernetes-incubator/client-python/issues/58 - needs more investigation, but I don't necessarily think this is the issue - we may just have to construct the restClient.Config another way
-// https://github.com/kubernetes/kubernetes/issues/7452 - so how do we portforward without spdy
-// Portforwarding via websockets - https://github.com/kubernetes/kubernetes/pull/50428
-// https://github.com/kubernetes/features/issues/384
-// https://github.com/kubernetes/kubernetes/blob/v1.7.0/pkg/kubectl/cmd/portforward.go - How it's done in the CLI tool
 func (k *K8) Forward(podName string, localPort, remotePort string) error {
 	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
 	f := cmdutil.NewFactory(nil)
-	//clientset, err := f.ClientSet()
-	//if err != nil {
-	//	return log.WrapError(err)
-	//}
-	//podClient := clientset.Core()
 	conf, err := f.ClientConfig()
 	if err != nil {
 		return log.WrapError(err)
@@ -131,10 +117,6 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 		return log.WrapError(err)
 	}
 
-	//_, err = podClient.Pods(defaultNamespace).Get(podName, metav1.GetOptions{})
-	//if err != nil {
-	//	return log.WrapError(err)
-	//}
 	req := restClient.Post().Resource("pods").Namespace(defaultNamespace).Name(podName).SubResource("portforward")
 
 	transport, upgrader, err := spdy.RoundTripperFor(conf)
