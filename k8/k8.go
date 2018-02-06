@@ -105,23 +105,26 @@ func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
 	return "", nil
 }
 
-func (k *K8) Forward(podName string, localPort, remotePort string) error {
+func (k *K8) Forward(podName string, localPort, remotePort string) chan error {
 	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
 	f := cmdutil.NewFactory(nil)
 	conf, err := f.ClientConfig()
 	if err != nil {
-		return log.WrapError(err)
+		logger.Error("error creating client config", zap.Error(err))
+		return nil
 	}
 	restClient, err := f.RESTClient()
 	if err != nil {
-		return log.WrapError(err)
+		logger.Error("error creating restclient", zap.Error(err))
+		return nil
 	}
 
 	req := restClient.Post().Resource("pods").Namespace(defaultNamespace).Name(podName).SubResource("portforward")
 
 	transport, upgrader, err := spdy.RoundTripperFor(conf)
 	if err != nil {
-		return log.WrapError(err)
+		logger.Error("error creating roundtripper", zap.Error(err))
+		return nil
 	}
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
@@ -133,16 +136,14 @@ func (k *K8) Forward(podName string, localPort, remotePort string) error {
 		os.Stderr,
 	)
 	if err != nil {
-		return log.WrapError(err)
+		logger.Error("error creating port forward", zap.Error(err))
+		return nil
 	}
 	errChan := make(chan error)
 	go func() {
 		errChan <- fw.ForwardPorts()
 	}()
-	if err := <-errChan; err != nil {
-		return log.WrapError(err)
-	}
-	return nil
+	return errChan
 }
 
 func k8Config() clientcmd.ClientConfig {

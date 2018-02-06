@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -109,11 +110,16 @@ func curl(cmd *cobra.Command, args []string) error {
 }
 
 func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
-	address, err := formatAddress(kube, uri)
-	defer closePortForwarding(kube)
-	if err != nil {
-		return nil, err
+	var errChan chan error
+	address := formatAddress(kube, uri)
+	// If protocol is K8, then set up portforwarding
+	if uri.Protocol == util.K8Protocol {
+		errChan = setupPortForwarding(kube, uri)
 	}
+	if errChan == nil {
+		return nil, errors.New("Error setting up portforwarding")
+	}
+	defer closePortForwarding(kube)
 	// Figure out auth later
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
@@ -136,22 +142,17 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 	return responseJSON, nil
 }
 
-func formatAddress(kube *k8.K8, uri *util.URI) (string, error) {
+func formatAddress(kube *k8.K8, uri *util.URI) string {
 	if uri.Protocol == util.K8Protocol {
-		// Setup port forwarding - localhost and port
-		err := setupPortForwarding(kube, uri)
-		if err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("localhost:%s", uri.Port), nil
+		return fmt.Sprintf("localhost:%s", uri.Port)
 	}
-	return fmt.Sprintf("%s:%s", uri.Service, uri.Port), nil
+	return fmt.Sprintf("%s:%s", uri.Service, uri.Port)
 }
 
-func setupPortForwarding(kube *k8.K8, uri *util.URI) error {
+func setupPortForwarding(kube *k8.K8, uri *util.URI) chan error {
 	podName, remotePort, err := kube.GetPodNameAndRemotePort(uri.Service, uri.Port)
 	if err != nil {
-		return err
+		return nil
 	}
 	return kube.Forward(podName, uri.Port, remotePort)
 }
