@@ -119,7 +119,13 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 	if errChan == nil {
 		return nil, errors.New("Error setting up portforwarding")
 	}
-	defer closePortForwarding(kube)
+	defer func() {
+		err := <-errChan
+		if err != nil {
+			logger.Error(err.Error())
+		}
+		closePortForwarding(kube)
+	}()
 	// Figure out auth later
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
@@ -144,6 +150,7 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 
 func formatAddress(kube *k8.K8, uri *util.URI) string {
 	if uri.Protocol == util.K8Protocol {
+		logger.Info("K8 protocol detected")
 		return fmt.Sprintf("localhost:%s", uri.Port)
 	}
 	return fmt.Sprintf("%s:%s", uri.Service, uri.Port)

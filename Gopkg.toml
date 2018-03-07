@@ -63,3 +63,7 @@
 [[override]]
   name = "k8s.io/api"
   version = "kubernetes-1.9.2"
+
+[prune]
+  go-tests = true
+  unused-packages = true
