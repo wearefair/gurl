@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
@@ -33,7 +32,7 @@ var (
 var RootCmd = &cobra.Command{
 	Use:   "gurl",
 	Short: "Curl your gRPC services",
-	RunE:  curl,
+	RunE:  gurl,
 }
 
 func Execute() {
@@ -46,7 +45,6 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	RootCmd.Flags().IntVarP(&port, "port", "p", 0, "Local port to set up remote forwarding. Will default to the port set in the uri if not set here")
 	RootCmd.Flags().StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
 	RootCmd.Flags().StringVarP(&data, "data", "d", "", "Data, as JSON, to send to the gRPC service")
 	RootCmd.MarkFlagRequired("uri")
@@ -57,30 +55,30 @@ func initConfig() {
 	config.Read()
 }
 
-func curl(cmd *cobra.Command, args []string) error {
-	kube, err := k8.New(config.Instance().KubeConfig)
-	if err != nil {
-		return err
-	}
-	uriWrapper, err := util.ParseURI(uri)
+func gurl(cmd *cobra.Command, args []string) error {
+	// Parse and return the URI in a format we can expect
+	parsedURI, err := util.ParseURI(uri)
 	if err != nil {
 		return err
 	}
 
+	// Walks the proto import and service paths defined in the config and returns all descriptors
 	descriptors, err := cligrpc.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
 	if err != nil {
 		return err
 	}
 
+	// Get the service descriptor by the RPC that was set in the URI
 	collector := cligrpc.NewCollector(descriptors)
-	serviceDescriptor, err := collector.GetService(uriWrapper.RPC)
+	serviceDescriptor, err := collector.GetService(parsedURI.RPC)
 	if err != nil {
 		return err
 	}
 
-	methodDescriptor := serviceDescriptor.FindMethodByName(uriWrapper.Method)
+	// Find the method attached to the service via the URI
+	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.Method)
 	if methodDescriptor == nil {
-		err := fmt.Errorf("No method %s found", uriWrapper.Method)
+		err := fmt.Errorf("No method %s found", parsedURI.Method)
 		logger.Error(err.Error())
 		return err
 	}
@@ -95,7 +93,13 @@ func curl(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	response, err := sendRequest(kube, uriWrapper, methodDescriptor, message)
+
+	kube, err := k8.NewK8()
+	if err != nil {
+		return err
+	}
+
+	response, err := sendRequest(kube, parsedURI, methodDescriptor, message)
 	if err != nil {
 		return err
 	}
@@ -109,31 +113,54 @@ func curl(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// sendRequest takes in the uri, the actual method descriptor, and the dynamically constructed message to send
 func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
-	var errChan chan error
+	var pf *k8.PortForward
 	address := formatAddress(kube, uri)
 	// If protocol is K8, then set up portforwarding
 	if uri.Protocol == util.K8Protocol {
-		errChan = setupPortForwarding(kube, uri)
-	}
-	if errChan == nil {
-		return nil, errors.New("Error setting up portforwarding")
+		pf = k8.NewPortForward()
+		podName, remotePort, err := kube.GetPodNameAndRemotePort(uri.Service, uri.Port)
+		if err != nil {
+			return nil, err
+		}
+		localPort, err := util.GetAvailablePort()
+		if err != nil {
+			return nil, err
+		}
+		req := &k8.PortForwardRequest{
+			Namespace:  "default",
+			Pod:        podName,
+			LocalPort:  localPort,
+			RemotePort: remotePort,
+		}
+		if err = pf.Forward(kube.Config, req); err != nil {
+			return nil, err
+		}
 	}
 	defer func() {
-		err := <-errChan
-		if err != nil {
-			logger.Error(err.Error())
+		if pf != nil {
+			pf.Stop()
 		}
-		closePortForwarding(kube)
 	}()
-	// Figure out auth later
+	go func() {
+		// TODO: This is ugly af, fix
+		if pf != nil {
+			for {
+				err := <-pf.ErrorChannel
+				if err != nil {
+					logger.Error(err.Error())
+				}
+			}
+		}
+	}()
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		return nil, log.WrapError(err)
 	}
 	stub := grpcdynamic.NewStub(clientConn)
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
-	// TODO: Handle different cases for client, server, and bidi streaming
+	// Disabled server and client streaming calls
 	methodProto.ClientStreaming = util.PointerifyBool(false)
 	methodProto.ServerStreaming = util.PointerifyBool(false)
 	response, err := stub.InvokeRpc(context.Background(), methodDescriptor, message)
@@ -141,6 +168,7 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 		return nil, log.WrapError(err)
 	}
 	marshaler := &runtime.JSONPb{}
+	// Marshals PB response into JSON
 	responseJSON, err := marshaler.Marshal(response)
 	if err != nil {
 		return nil, log.WrapError(err)
@@ -156,14 +184,14 @@ func formatAddress(kube *k8.K8, uri *util.URI) string {
 	return fmt.Sprintf("%s:%s", uri.Service, uri.Port)
 }
 
-func setupPortForwarding(kube *k8.K8, uri *util.URI) chan error {
-	podName, remotePort, err := kube.GetPodNameAndRemotePort(uri.Service, uri.Port)
-	if err != nil {
-		return nil
-	}
-	return kube.Forward(podName, uri.Port, remotePort)
-}
+//func setupPortForwarding(kube *k8.K8, uri *util.URI) (chan error, error) {
+//	podName, remotePort, err := kube.GetPodNameAndRemotePort(uri.Service, uri.Port)
+//	if err != nil {
+//		return nil
+//	}
+//	kube.Forward(podName, uri.Port, remotePort)
+//}
 
-func closePortForwarding(kube *k8.K8) {
-	kube.StopChannel <- struct{}{}
-}
+//func closePortForwarding(kube *k8.K8) {
+//	kube.StopChannel <- struct{}{}
+//}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/cobra"
-	"github.com/wearefair/gurl/config"
 	"github.com/wearefair/gurl/k8"
 )
 
@@ -25,7 +24,7 @@ func init() {
 }
 
 func portForward(cmd *cobra.Command, args []string) error {
-	k, err := k8.New(config.Instance().KubeConfig)
+	k, err := k8.NewK8()
 	if err != nil {
 		return err
 	}

@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	// protocol://context/service:port/grpc/service-method
+	// protocol://context/service:port/grpc/rpc/method
 	uriRegex = `((?P<protocol>[a-z0-9]{2,4})(?:\:\/\/)((?P<context>[0-9a-z._-]+)(?:\/))?)?(?P<service>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})(?:\/)(?P<rpc>[0-9a-zA-Z._-]+)(?:\/)(?P<method>[0-9a-zA-Z._-]+)`
 
 	K8Protocol = "k8"
 )
 
 var (
-	errInvalidURIFormat = errors.New("URI must be in the form of host:port/service/method")
+	errInvalidURIFormat = errors.New("URI must be in the form of protocol://host:port/service/method")
 	uriRegexp           = regexp.MustCompile(uriRegex)
 )
 
@@ -29,14 +29,13 @@ type URI struct {
 	Method   string
 }
 
-// ParseURI parses URI and returns it in an expected format
+// ParseURI parses a string URI against the regexp and returns it in an expected format
 func ParseURI(uri string) (*URI, error) {
 	namedMatches := make(map[string]string)
 	// host:port/service/method
 	submatches := uriRegexp.FindStringSubmatch(uri)
 	if submatches == nil {
-		log.Logger().Error(errInvalidURIFormat.Error())
-		return nil, errInvalidURIFormat
+		return nil, log.WrapError(errInvalidURIFormat)
 	}
 	for i, name := range uriRegexp.SubexpNames() {
 		// The first index is going to be the whole match
@@ -46,8 +45,7 @@ func ParseURI(uri string) (*URI, error) {
 		namedMatches[name] = submatches[i]
 	}
 	if len(namedMatches) < 1 {
-		log.Logger().Error(errInvalidURIFormat.Error())
-		return nil, errInvalidURIFormat
+		return nil, log.WrapError(errInvalidURIFormat)
 	}
 	uriWrapper := &URI{
 		Protocol: namedMatches["protocol"],

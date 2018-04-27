@@ -40,6 +40,7 @@ func (c *Collector) addDescriptorsToCache(fileDescriptors []*desc.FileDescriptor
 	}
 }
 
+// ListServices lists back the services in a formatted method
 func (c *Collector) ListServices() {
 	serviceIndex := 1
 	for name, service := range c.ServiceCache {

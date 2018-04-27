@@ -34,7 +34,10 @@ type Github struct {
 type Config struct {
 	configured bool
 	Local      struct {
-		ImportPaths  []string `json:"import_paths"`
+		// TODO: Nomenclature for this isn't great, rename
+		// ImportPaths are a slice of paths to find protos related to internal services
+		ImportPaths []string `json:"import_paths"`
+		// ServicePaths are a slice of paths to find protos that are required by internal services
 		ServicePaths []string `json:"service_paths"`
 	} `json:"local"`
 	KubeConfig string

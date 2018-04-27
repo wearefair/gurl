@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 var (
@@ -27,26 +26,42 @@ const (
 )
 
 type K8 struct {
-	Client       kubernetes.Interface
-	Config       *rest.Config
+	Client kubernetes.Interface
+	Config clientcmd.ClientConfig
+	//	Config       *rest.Config
 	StopChannel  chan struct{}
 	ReadyChannel chan struct{}
 }
 
-func New(kubeconfig string) (*K8, error) {
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+//func New(kubeconfig string) (*K8, error) {
+//	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+//	if err != nil {
+//		return nil, log.WrapError(err)
+//	}
+//	clientset, err := kubernetes.NewForConfig(cfg)
+//	if err != nil {
+//		return nil, log.WrapError(err)
+//	}
+//	return &K8{
+//		Client: clientset,
+//		Config: cfg,
+//	}, nil
+//}
+
+func NewK8() (*K8, error) {
+	// https://godoc.org/k8s.io/client-go/tools/clientcmd
+	config := k8Config()
+	clientCfg, err := config.ClientConfig()
 	if err != nil {
 		return nil, log.WrapError(err)
 	}
-	clientset, err := kubernetes.NewForConfig(cfg)
+	clientset, err := kubernetes.NewForConfig(clientCfg)
 	if err != nil {
 		return nil, log.WrapError(err)
 	}
 	return &K8{
-		Client:       clientset,
-		Config:       cfg,
-		StopChannel:  make(chan struct{}, 1),
-		ReadyChannel: make(chan struct{}, 1),
+		Client: clientset,
+		Config: config,
 	}, nil
 }
 
@@ -105,26 +120,23 @@ func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
 	return "", nil
 }
 
-func (k *K8) Forward(podName string, localPort, remotePort string) chan error {
+func (k *K8) Forward(podName string, localPort, remotePort string) (chan error, error) {
 	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
-	f := cmdutil.NewFactory(nil)
-	conf, err := f.ClientConfig()
+	// f := cmdutil.NewFactory(nil)
+	conf, err := k.Config.ClientConfig()
 	if err != nil {
-		logger.Error("error creating client config", zap.Error(err))
-		return nil
+		return nil, log.WrapError(err)
 	}
-	restClient, err := f.RESTClient()
+	restClient, err := rest.RESTClientFor(conf)
 	if err != nil {
-		logger.Error("error creating restclient", zap.Error(err))
-		return nil
+		return nil, log.WrapError(err)
 	}
 
 	req := restClient.Post().Resource("pods").Namespace(defaultNamespace).Name(podName).SubResource("portforward")
 
 	transport, upgrader, err := spdy.RoundTripperFor(conf)
 	if err != nil {
-		logger.Error("error creating roundtripper", zap.Error(err))
-		return nil
+		return nil, log.WrapError(err)
 	}
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
@@ -136,19 +148,18 @@ func (k *K8) Forward(podName string, localPort, remotePort string) chan error {
 		os.Stderr,
 	)
 	if err != nil {
-		logger.Error("error creating port forward", zap.Error(err))
-		return nil
+		return nil, log.WrapError(err)
 	}
 	errChan := make(chan error)
 	go func() {
 		errChan <- fw.ForwardPorts()
 	}()
-	return errChan
+	return errChan, nil
 }
 
 func k8Config() clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
-
+	// TODO: Set the context here when you pull it out from a URL
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 }

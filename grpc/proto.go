@@ -28,9 +28,11 @@ func Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dyna
 	return message, nil
 }
 
-// Parses protos and returns the correct protos
+// Collect takes import paths and service paths, walks all of the service paths and then
+// parses the protos and returns all related file descriptors
 func Collect(importPaths, servicePaths []string) ([]*desc.FileDescriptor, error) {
 	concat := append(importPaths, servicePaths...)
+	// Creating a set of paths so we don't track duplicates
 	paths := set.New()
 	for _, path := range servicePaths {
 		paths = walkDirs(path, paths)
@@ -49,7 +51,7 @@ func walkDirs(tree string, paths *set.Set) *set.Set {
 		if filepath.Ext(info.Name()) == ".proto" {
 			// Need to just add the path after the directory that things are pointed to
 			pathSplit := strings.SplitAfter(path, tree+"/")
-			// This is not going to end well - add conditional logic around it if path is '.'
+			// TODO: This is not going to end well - add conditional logic around it if path is '.'
 			if len(pathSplit) < 2 {
 				paths.Add(pathSplit[0])
 			} else {
