@@ -1,6 +1,7 @@
 package k8
 
 import (
+	"fmt"
 	"sync"
 
 	"net/http"
@@ -56,7 +57,7 @@ func (p *PortForward) Forward(conf clientcmd.ClientConfig, req *PortForwardReque
 	}
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", podReq.URL())
 	fw, err := portforward.New(dialer,
-		[]string{req.LocalPort, req.RemotePort},
+		[]string{fmt.Sprintf("%s:%s", req.LocalPort, req.RemotePort)},
 		p.StopChannel,
 		p.ReadyChannel,
 		os.Stdout,
