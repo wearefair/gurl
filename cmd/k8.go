@@ -24,7 +24,7 @@ func init() {
 }
 
 func portForward(cmd *cobra.Command, args []string) error {
-	k, err := k8.NewK8()
+	k, err := k8.NewK8("")
 	if err != nil {
 		return err
 	}

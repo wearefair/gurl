@@ -48,9 +48,9 @@ type K8 struct {
 //	}, nil
 //}
 
-func NewK8() (*K8, error) {
+func NewK8(context string) (*K8, error) {
 	// https://godoc.org/k8s.io/client-go/tools/clientcmd
-	config := k8Config()
+	config := k8Config(context)
 	clientCfg, err := config.ClientConfig()
 	if err != nil {
 		return nil, log.WrapError(err)
@@ -157,9 +157,11 @@ func (k *K8) Forward(podName string, localPort, remotePort string) (chan error, 
 	return errChan, nil
 }
 
-func k8Config() clientcmd.ClientConfig {
+func k8Config(context string) clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
-	// TODO: Set the context here when you pull it out from a URL
+	if context != "" {
+		configOverrides.CurrentContext = context
+	}
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 }

@@ -94,7 +94,7 @@ func gurl(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	kube, err := k8.NewK8()
+	kube, err := k8.NewK8(parsedURI.Context)
 	if err != nil {
 		return err
 	}
