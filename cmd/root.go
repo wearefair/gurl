@@ -150,6 +150,8 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 				err := <-pf.ErrorChannel
 				if err != nil {
 					logger.Error(err.Error())
+					pf.Stop()
+					break
 				}
 			}
 		}
