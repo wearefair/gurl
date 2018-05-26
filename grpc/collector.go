@@ -14,6 +14,7 @@ type Collector struct {
 	ServiceCache map[string]*desc.ServiceDescriptor
 }
 
+// NewCollector returns an instance of a Collector struct
 func NewCollector(fileDescriptors []*desc.FileDescriptor) *Collector {
 	collector := &Collector{
 		MessageCache: make(map[string]*desc.MessageDescriptor),
@@ -23,6 +24,8 @@ func NewCollector(fileDescriptors []*desc.FileDescriptor) *Collector {
 	return collector
 }
 
+// AddDescriptors takes a slice of file descriptors, walks them, and then saves
+// all message and service descriptors to a cache with the key as the FQDN
 func (c *Collector) AddDescriptors(fileDescriptors []*desc.FileDescriptor) {
 	c.addDescriptorsToCache(fileDescriptors)
 }
@@ -57,6 +60,8 @@ func toChar(i int) rune {
 	return rune('A' - 1 + i)
 }
 
+// GetMessage takes a message descriptor's FQDN and returns the descriptor
+// or an error if not found
 func (c *Collector) GetMessage(name string) (*desc.MessageDescriptor, error) {
 	descriptor, ok := c.MessageCache[name]
 	if !ok {
@@ -67,6 +72,8 @@ func (c *Collector) GetMessage(name string) (*desc.MessageDescriptor, error) {
 	return descriptor, nil
 }
 
+// GetService takes a service descriptor's FQDN and returns the descriptor
+// or an error if not found
 func (c *Collector) GetService(name string) (*desc.ServiceDescriptor, error) {
 	descriptor, ok := c.ServiceCache[name]
 	if !ok {

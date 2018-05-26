@@ -18,6 +18,8 @@ var (
 	logger = log.Logger()
 )
 
+// Construct takes a message descriptor and a message, as a JSON string and
+// returns it as a message, or an error if there's issues marshalling
 func Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
 	message := dynamic.NewMessage(messageDescriptor)
 	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), message)

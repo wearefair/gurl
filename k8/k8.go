@@ -48,6 +48,8 @@ type K8 struct {
 //	}, nil
 //}
 
+// NewK8 takes a Kubernetes context and constructs a K8 client set up for that
+// context to make calls
 func NewK8(context string) (*K8, error) {
 	// https://godoc.org/k8s.io/client-go/tools/clientcmd
 	config := k8Config(context)
@@ -65,18 +67,20 @@ func NewK8(context string) (*K8, error) {
 	}, nil
 }
 
-// Use endpoint for pod name
+// GetPodNameAndRemotePort takes a service name and a port as a string and then returns
+// the pod name, the target port for the pod or an error
+// TODO: Use endpoint for pod name
 // Use service for targetPort for pod
-func (k *K8) GetPodNameAndRemotePort(serviceName, port string) (string, string, error) {
-	podName, err := k.getPodNameFromEndpoint(serviceName)
+func (k *K8) GetPodNameAndRemotePort(serviceName, port string) (podName string, targetPort string, err error) {
+	podName, err = k.getPodNameFromEndpoint(serviceName)
 	if err != nil {
-		return "", "", err
+		return
 	}
-	targetPort, err := k.getPodTargetPort(serviceName, port)
+	targetPort, err = k.getPodTargetPort(serviceName, port)
 	if err != nil {
-		return "", "", err
+		return
 	}
-	return podName, targetPort, nil
+	return
 }
 
 func (k *K8) getPodTargetPort(serviceName, port string) (string, error) {

@@ -156,6 +156,7 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 			}
 		}
 	}()
+	logger.Info("Hit the outside of this weird for loop and trying to create a dialer")
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		return nil, log.WrapError(err)
