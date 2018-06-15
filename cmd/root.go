@@ -130,6 +130,7 @@ func gurl(cmd *cobra.Command, args []string) error {
 func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
 	// TODO: A lot of this logic should get pulled out
 	address := formatAddress(uri)
+	logger.Debug("Dialing request", zap.String("address", address))
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		return nil, log.WrapError(err)
@@ -152,12 +153,13 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	return responseJSON, nil
 }
 
+// Helper func to format an address. Right now, this is only needed because K8
+// requests get locked to localhost for port-forwarding.
 func formatAddress(uri *util.URI) string {
 	if uri.Protocol == util.K8Protocol {
-		logger.Info("K8 protocol detected")
 		return fmt.Sprintf("localhost:%s", uri.Port)
 	}
-	return fmt.Sprintf("%s:%s", uri.Service, uri.Port)
+	return fmt.Sprintf("%s:%s", uri.Host, uri.Port)
 }
 
 // Reads K8 config from default location, which is $HOME/.kube/config
