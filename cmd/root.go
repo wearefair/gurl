@@ -105,7 +105,6 @@ func gurl(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		// TODO: Determine if this is the best place.
 		defer pf.Close()
 		// TODO: Don't mutate the state of the URI and pass it down, that's not great.
 		parsedURI.Port = pf.LocalPort()
