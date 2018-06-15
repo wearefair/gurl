@@ -53,7 +53,6 @@ func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*P
 		logger.Error("port-forward - error getting raw config", zap.Error(err))
 		return nil, err
 	}
-	logger.Debug("port-forward - raw config", zap.Any("config", rawConfig))
 
 	newConfig := clientcmd.NewDefaultClientConfig(rawConfig, &clientcmd.ConfigOverrides{
 		CurrentContext: req.Context,
