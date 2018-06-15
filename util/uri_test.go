@@ -11,44 +11,61 @@ func TestParseURI(t *testing.T) {
 		Expected *URI
 		Err      error
 	}{
+		// Parse K8 protocol with context set
 		{
-			Input: "k8://sandbox-general/public-api:80/fakeService.Service/fakeMethod",
+			Input: "k8://sandbox-general/public-api:80/fakeService.Service/fakeRPC",
 			Expected: &URI{
 				Protocol: "k8",
 				Context:  "sandbox-general",
-				Service:  "public-api",
+				Host:     "public-api",
 				Port:     "80",
-				RPC:      "fakeService.Service",
-				Method:   "fakeMethod",
+				Service:  "fakeService.Service",
+				RPC:      "fakeRPC",
 			},
 			Err: nil,
 		},
+		// Parse K8 protocol without context set
 		{
-			Input: "localhost:3000/fakeService.Service/fakeMethod",
+			Input: "k8://public-api:80/fakeService.Service/fakeRPC",
 			Expected: &URI{
-				Service: "localhost",
-				Port:    "3000",
-				RPC:     "fakeService.Service",
-				Method:  "fakeMethod",
+				Protocol: "k8",
+				Host:     "public-api",
+				Port:     "80",
+				Service:  "fakeService.Service",
+				RPC:      "fakeRPC",
 			},
 			Err: nil,
 		},
+		// Parse input without protocol set
 		{
-			Input: "http://localhost:3000/fakeService.Service/fakeMethod",
+			Input: "localhost:3000/fakeService.Service/fakeRPC",
+			Expected: &URI{
+				Host:    "localhost",
+				Port:    "3000",
+				Service: "fakeService.Service",
+				RPC:     "fakeRPC",
+			},
+			Err: nil,
+		},
+		// Parse input with protocol set
+		{
+			Input: "http://localhost:3000/fakeService.Service/fakeRPC",
 			Expected: &URI{
 				Protocol: "http",
-				Service:  "localhost",
+				Host:     "localhost",
 				Port:     "3000",
-				RPC:      "fakeService.Service",
-				Method:   "fakeMethod",
+				Service:  "fakeService.Service",
+				RPC:      "fakeRPC",
 			},
 			Err: nil,
 		},
+		// Input that's a completely hot garbage returns error
 		{
 			Input:    "fakeNews",
 			Expected: nil,
 			Err:      errInvalidURIFormat,
 		},
+		// Empty input returns error
 		{
 			Input:    "",
 			Expected: nil,

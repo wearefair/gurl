@@ -3,169 +3,80 @@ package k8
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
-	"strconv"
-
-	"go.uber.org/zap"
 
 	"github.com/wearefair/gurl/log"
+	"go.uber.org/zap"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
 
-var (
-	logger = log.Logger()
-)
+const defaultNamespace = "default"
 
-const (
-	defaultNamespace = "default"
-)
+var logger = log.Logger()
 
-type K8 struct {
-	Client kubernetes.Interface
-	Config clientcmd.ClientConfig
-	//	Config       *rest.Config
-	StopChannel  chan struct{}
-	ReadyChannel chan struct{}
+// Interface for handling K8 operations
+type k8Client interface {
+	Config() rest.Config
+	Service(namespace, name string) (*v1.Service, error)
+	Endpoints(namespace, name string) (*v1.Endpoints, error)
+	PortForwarder(url *url.URL, localPort, remotePort string, ready, stop chan struct{}) (k8PortForwarder, error)
 }
 
-//func New(kubeconfig string) (*K8, error) {
-//	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-//	if err != nil {
-//		return nil, log.WrapError(err)
-//	}
-//	clientset, err := kubernetes.NewForConfig(cfg)
-//	if err != nil {
-//		return nil, log.WrapError(err)
-//	}
-//	return &K8{
-//		Client: clientset,
-//		Config: cfg,
-//	}, nil
-//}
+// K8 portforward interface so we can mock out the portforward's behavior in tests
+type k8PortForwarder interface {
+	ForwardPorts() error
+}
 
-// NewK8 takes a Kubernetes context and constructs a K8 client set up for that
-// context to make calls
-func NewK8(context string) (*K8, error) {
-	// https://godoc.org/k8s.io/client-go/tools/clientcmd
-	config := k8Config(context)
-	clientCfg, err := config.ClientConfig()
+func newK8Client(config *rest.Config) (*k8ClientImpl, error) {
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, log.WrapError(err)
+		logger.Error("port-forward - failed to create k8 client", zap.Error(err))
+		return nil, err
 	}
-	clientset, err := kubernetes.NewForConfig(clientCfg)
-	if err != nil {
-		return nil, log.WrapError(err)
-	}
-	return &K8{
-		Client: clientset,
-		Config: config,
+
+	return &k8ClientImpl{
+		config: config,
+		client: clientSet,
 	}, nil
 }
 
-// GetPodNameAndRemotePort takes a service name and a port as a string and then returns
-// the pod name, the target port for the pod or an error
-// TODO: Use endpoint for pod name
-// Use service for targetPort for pod
-func (k *K8) GetPodNameAndRemotePort(serviceName, port string) (podName string, targetPort string, err error) {
-	podName, err = k.getPodNameFromEndpoint(serviceName)
-	if err != nil {
-		return
-	}
-	targetPort, err = k.getPodTargetPort(serviceName, port)
-	if err != nil {
-		return
-	}
-	return
+type k8ClientImpl struct {
+	config *rest.Config
+	client kubernetes.Interface
 }
 
-func (k *K8) getPodTargetPort(serviceName, port string) (string, error) {
-	service, err := k.Client.CoreV1().Services(defaultNamespace).Get(serviceName, metav1.GetOptions{})
-	if err != nil {
-		return "", log.WrapError(err)
-	}
-	ports := service.Spec.Ports
-	if len(ports) < 1 {
-		err := fmt.Errorf("No ports found for %s", serviceName)
-		return "", log.WrapError(err)
-	}
-	portInt, err := strconv.Atoi(port)
-	if err != nil {
-		return "", log.WrapError(err)
-	}
-	for _, port := range ports {
-		if port.Port == int32(portInt) {
-			return strconv.Itoa(int(port.TargetPort.IntVal)), nil
-		}
-	}
-	err = fmt.Errorf("No ports found for %s", serviceName)
-	return "", log.WrapError(err)
+func (k *k8ClientImpl) Config() rest.Config {
+	return *k.config
 }
 
-// Just returning the first pod name found
-func (k *K8) getPodNameFromEndpoint(serviceName string) (string, error) {
-	endpoint, err := k.Client.CoreV1().Endpoints(defaultNamespace).Get(serviceName, metav1.GetOptions{})
-	if err != nil {
-		return "", log.WrapError(err)
-	}
-	for _, subset := range endpoint.Subsets {
-		for _, address := range subset.Addresses {
-			reference := *address.TargetRef
-			if reference.Kind != "Pod" {
-				continue
-			}
-			return reference.Name, nil
-		}
-	}
-	return "", nil
+func (k *k8ClientImpl) Service(namespace, name string) (*v1.Service, error) {
+	return k.client.CoreV1().Services(namespace).Get(name, metav1.GetOptions{})
 }
 
-func (k *K8) Forward(podName string, localPort, remotePort string) (chan error, error) {
-	logger.Debug("Port forwarding", zap.String("pod", podName), zap.String("local-port", localPort), zap.String("remote-port", remotePort))
-	// f := cmdutil.NewFactory(nil)
-	conf, err := k.Config.ClientConfig()
-	if err != nil {
-		return nil, log.WrapError(err)
-	}
-	restClient, err := rest.RESTClientFor(conf)
-	if err != nil {
-		return nil, log.WrapError(err)
-	}
+func (k *k8ClientImpl) Endpoints(namespace, name string) (*v1.Endpoints, error) {
+	return k.client.CoreV1().Endpoints(namespace).Get(name, metav1.GetOptions{})
+}
 
-	req := restClient.Post().Resource("pods").Namespace(defaultNamespace).Name(podName).SubResource("portforward")
-
-	transport, upgrader, err := spdy.RoundTripperFor(conf)
+func (k *k8ClientImpl) PortForwarder(url *url.URL, localPort, remotePort string, ready, stop chan struct{}) (k8PortForwarder, error) {
+	transport, upgrader, err := spdy.RoundTripperFor(k.config)
 	if err != nil {
-		return nil, log.WrapError(err)
+		logger.Error("port-forward - failed to create roundtripper", zap.Error(err))
+		return nil, err
 	}
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
-	fw, err := portforward.New(dialer,
-		[]string{localPort, remotePort},
-		k.StopChannel,
-		k.ReadyChannel,
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", url)
+	return portforward.New(dialer,
+		[]string{fmt.Sprintf("%s:%s", localPort, remotePort)},
+		stop,
+		ready,
+		// TODO: We can make this configurable to maybe wrap logs.
 		os.Stdout,
 		os.Stderr,
 	)
-	if err != nil {
-		return nil, log.WrapError(err)
-	}
-	errChan := make(chan error)
-	go func() {
-		errChan <- fw.ForwardPorts()
-	}()
-	return errChan, nil
-}
-
-func k8Config(context string) clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-	if context != "" {
-		configOverrides.CurrentContext = context
-	}
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/wearefair/gurl/log"
 	"github.com/wearefair/gurl/util"
 	"google.golang.org/grpc"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -46,7 +47,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	RootCmd.Flags().StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
-	RootCmd.Flags().StringVarP(&data, "data", "d", "", "Data, as JSON, to send to the gRPC service")
+	RootCmd.Flags().StringVarP(&data, "data", "d", "", "Data, as JSON string, to send to the gRPC service")
 	RootCmd.MarkFlagRequired("uri")
 	RootCmd.MarkFlagRequired("data")
 }
@@ -68,17 +69,17 @@ func gurl(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Get the service descriptor by the RPC that was set in the URI
+	// Get the service descriptor that was set in the URI
 	collector := cligrpc.NewCollector(descriptors)
-	serviceDescriptor, err := collector.GetService(parsedURI.RPC)
+	serviceDescriptor, err := collector.GetService(parsedURI.Service)
 	if err != nil {
 		return err
 	}
 
-	// Find the method attached to the service via the URI
-	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.Method)
+	// Find the RPC attached to the service via the URI
+	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.RPC)
 	if methodDescriptor == nil {
-		err := fmt.Errorf("No method %s found", parsedURI.Method)
+		err := fmt.Errorf("No method %s found", parsedURI.RPC)
 		logger.Error(err.Error())
 		return err
 	}
@@ -94,17 +95,27 @@ func gurl(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	kube, err := k8.NewK8(parsedURI.Context)
+	if parsedURI.Protocol == util.K8Protocol {
+		// Set up port forward, then send request
+		req := uriToPortForwardRequest(parsedURI)
+		pf, err := k8.StartPortForward(k8Config(), req)
+		if err != nil {
+			return err
+		}
+		// TODO: Determine if this is the best place.
+		defer pf.Close()
+		// TODO: Don't mutate the state of the URI and pass it down, that's not great.
+		parsedURI.Port = pf.LocalPort()
+	}
+
+	// Send request and get response
+	response, err := sendRequest(parsedURI, methodDescriptor, message)
 	if err != nil {
 		return err
 	}
 
-	response, err := sendRequest(kube, parsedURI, methodDescriptor, message)
-	if err != nil {
-		return err
-	}
+	// Prettifying JSON of response
 	var prettyResponse bytes.Buffer
-	// Prettifying JSON
 	err = json.Indent(&prettyResponse, response, "", "  ")
 	if err != nil {
 		return log.WrapError(err)
@@ -114,49 +125,9 @@ func gurl(cmd *cobra.Command, args []string) error {
 }
 
 // sendRequest takes in the uri, the actual method descriptor, and the dynamically constructed message to send
-func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
-	var pf *k8.PortForward
-	address := formatAddress(kube, uri)
-	// If protocol is K8, then set up portforwarding
-	if uri.Protocol == util.K8Protocol {
-		pf = k8.NewPortForward()
-		podName, remotePort, err := kube.GetPodNameAndRemotePort(uri.Service, uri.Port)
-		if err != nil {
-			return nil, err
-		}
-		localPort, err := util.GetAvailablePort()
-		if err != nil {
-			return nil, err
-		}
-		req := &k8.PortForwardRequest{
-			Namespace:  "default",
-			Pod:        podName,
-			LocalPort:  localPort,
-			RemotePort: remotePort,
-		}
-		if err = pf.Forward(kube.Config, req); err != nil {
-			return nil, err
-		}
-	}
-	defer func() {
-		if pf != nil {
-			pf.Stop()
-		}
-	}()
-	go func() {
-		// TODO: This is ugly af, fix
-		if pf != nil {
-			for {
-				err := <-pf.ErrorChannel
-				if err != nil {
-					logger.Error(err.Error())
-					pf.Stop()
-					break
-				}
-			}
-		}
-	}()
-	logger.Info("Hit the outside of this weird for loop and trying to create a dialer")
+func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
+	// TODO: A lot of this logic should get pulled out
+	address := formatAddress(uri)
 	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		return nil, log.WrapError(err)
@@ -179,7 +150,7 @@ func sendRequest(kube *k8.K8, uri *util.URI, methodDescriptor *desc.MethodDescri
 	return responseJSON, nil
 }
 
-func formatAddress(kube *k8.K8, uri *util.URI) string {
+func formatAddress(uri *util.URI) string {
 	if uri.Protocol == util.K8Protocol {
 		logger.Info("K8 protocol detected")
 		return fmt.Sprintf("localhost:%s", uri.Port)
@@ -187,14 +158,23 @@ func formatAddress(kube *k8.K8, uri *util.URI) string {
 	return fmt.Sprintf("%s:%s", uri.Service, uri.Port)
 }
 
-//func setupPortForwarding(kube *k8.K8, uri *util.URI) (chan error, error) {
-//	podName, remotePort, err := kube.GetPodNameAndRemotePort(uri.Service, uri.Port)
-//	if err != nil {
-//		return nil
-//	}
-//	kube.Forward(podName, uri.Port, remotePort)
-//}
+// Reads K8 config from default location, which is $HOME/.kube/config
+func k8Config() clientcmd.ClientConfig {
+	// if you want to change the loading rules (which files in which order), you can do so here
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 
-//func closePortForwarding(kube *k8.K8) {
-//	kube.StopChannel <- struct{}{}
-//}
+	// if you want to change override values or bind them to flags, there are methods to help you
+	configOverrides := &clientcmd.ConfigOverrides{}
+
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+}
+
+func uriToPortForwardRequest(uri *util.URI) k8.PortForwardRequest {
+	return k8.PortForwardRequest{
+		Context: uri.Context,
+		// TODO: Make this namespace configurable via URI
+		Namespace: "default",
+		Service:   uri.Host,
+		Port:      uri.Port,
+	}
+}
