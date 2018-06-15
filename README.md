@@ -55,5 +55,14 @@ k8://my-k8-context/my-service:50051/helloworld/Greeter -d '{ "name": "cat cai" }
 ### Reference for JSON Types
 You should format JSON according to the protobuf docs laid out [here](https://developers.google.com/protocol-buffers/docs/proto3#json).
 
+### Caveats/Places to Improve
+Caveats:
+- This only supports unary calls
+
+Places to improve:
+- Configurable log levels
+- gurl configurations that are local to a project
+- Pass in proto files as an arg instead of as a configuration
+
 ### Special Thanks
 Huge props to [jhump](https://github.com/jhump) for his [protoreflect](https://github.com/jhump/protoreflect) package, which gurl makes heavy use of.
