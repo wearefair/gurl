@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
-	"k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -53,6 +53,7 @@ func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*P
 		logger.Error("port-forward - error getting raw config", zap.Error(err))
 		return nil, err
 	}
+	logger.Debug("port-forward - raw config", zap.Any("config", rawConfig))
 
 	newConfig := clientcmd.NewDefaultClientConfig(rawConfig, &clientcmd.ConfigOverrides{
 		CurrentContext: req.Context,

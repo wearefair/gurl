@@ -17,6 +17,7 @@ import (
 	"github.com/wearefair/gurl/k8"
 	"github.com/wearefair/gurl/log"
 	"github.com/wearefair/gurl/util"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -62,6 +63,7 @@ func gurl(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	logger.Debug("Parsed URI", zap.Any("uri", parsedURI))
 
 	// Walks the proto import and service paths defined in the config and returns all descriptors
 	descriptors, err := cligrpc.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
