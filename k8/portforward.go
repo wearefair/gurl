@@ -108,6 +108,12 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 		stopCoordinator: &sync.Once{},
 	}
 
+	logger.Debug("port-forward - setting up pf connection with the following info",
+		zap.String("namespace", req.Namespace),
+		zap.String("pod", pod),
+		zap.String("remote-port", remotePort),
+	)
+
 	errChan, err := activePortForward.connect(client, req.Namespace, pod, remotePort)
 	if err != nil {
 		logger.Error("port-forward - failed to start port forward", zap.Error(err))
@@ -161,6 +167,7 @@ func (p *PortForward) connect(client k8Client, namespace, podName, remotePort st
 	}
 
 	url := restClient.Post().Resource("pods").Namespace(namespace).Name(podName).SubResource("portforward").URL()
+	logger.Debug("port-forward - constructed url for pod", zap.Any("url", url))
 
 	// Use this channel to block until the connection is ready.
 	readyChannel := make(chan struct{}, 1)
