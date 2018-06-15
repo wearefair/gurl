@@ -6,6 +6,23 @@ There aren't many tools out there that make debugging gRPC easy. One of the appr
 
 When debugging a REST API, the instinct is often to use curl. gurl is meant to facilitate a similar workflow for debugging gRPC services, since it only requires a path to where your protos are located. No compilation or stub generation required! Just configure gurl to point to your protos, start your server, form your request as a JSON string (as you would for curl), and go.
 
+### Requirements & Installing
+gurl is built in Go 1.10.
+
+gurl uses dep for dependencies. However, vendored deps are not checked in because of the presence of the Gopkg.lock. To build locally:
+```bash
+# Install dep, or use brew install dep on OS X
+curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+# Pulls all dependencies
+make deps
+
+# Create a cross platform build
+make build
+```
+
+You can also download a copy of gurl on the platform of your choice from gurl's [releases](https://github.com/wearefair/gurl/releases) page.
+
 ### Setup
 Configure gurl with the *absolute path* to your protos, so it can load them.
 
