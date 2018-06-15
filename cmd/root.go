@@ -82,12 +82,13 @@ func gurl(cmd *cobra.Command, args []string) error {
 	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.RPC)
 	if methodDescriptor == nil {
 		err := fmt.Errorf("No method %s found", parsedURI.RPC)
-		logger.Error(err.Error())
-		return err
+		return log.WrapError(err)
 	}
 
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
-	messageDescriptor, err := collector.GetMessage(util.NormalizeMessageName(*methodProto.InputType))
+	messageDescriptor, err := collector.GetMessage(
+		util.NormalizeMessageName(*methodProto.InputType),
+	)
 	if err != nil {
 		return err
 	}

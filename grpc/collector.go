@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jhump/protoreflect/desc"
+	"github.com/wearefair/gurl/log"
 )
 
 // Collector holds onto a cache of descriptors
@@ -50,6 +51,7 @@ func (c *Collector) ListServices() {
 		fmt.Printf("%d. %s\n", serviceIndex, name)
 		methods := service.GetMethods()
 		for i, method := range methods {
+			// TODO: This is pretty ugly and will start printing weird characters.
 			fmt.Printf("\t%s. %s\n", string(toChar(i+1)), method.GetName())
 		}
 		serviceIndex++
@@ -66,8 +68,7 @@ func (c *Collector) GetMessage(name string) (*desc.MessageDescriptor, error) {
 	descriptor, ok := c.MessageCache[name]
 	if !ok {
 		err := fmt.Errorf("No message descriptor found for %s", name)
-		logger.Error(err.Error())
-		return nil, err
+		return nil, log.WrapError(err)
 	}
 	return descriptor, nil
 }
@@ -78,8 +79,7 @@ func (c *Collector) GetService(name string) (*desc.ServiceDescriptor, error) {
 	descriptor, ok := c.ServiceCache[name]
 	if !ok {
 		err := fmt.Errorf("No service descriptor found for %s", name)
-		logger.Error(err.Error())
-		return nil, err
+		return nil, log.WrapError(err)
 	}
 	return descriptor, nil
 }
