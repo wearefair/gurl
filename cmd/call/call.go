@@ -14,6 +14,7 @@ import (
 	"github.com/wearefair/gurl/pkg/config"
 	"github.com/wearefair/gurl/pkg/k8"
 	"github.com/wearefair/gurl/pkg/log"
+	"github.com/wearefair/gurl/pkg/options"
 	"github.com/wearefair/gurl/pkg/protobuf"
 	"github.com/wearefair/gurl/pkg/util"
 	"go.uber.org/zap"
@@ -27,6 +28,10 @@ var (
 	// host:port/service_name/method_name
 	port int
 	uri  string
+
+	callOptions = &options.Options{}
+	tlsOptions  = &options.TLS{}
+	useTls      bool
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -43,9 +48,17 @@ func init() {
 	flags.StringVarP(&data, "data", "d", "", "Data, as JSON string, to send to the gRPC service")
 	CallCmd.MarkFlagRequired("uri")
 	CallCmd.MarkFlagRequired("data")
+
+	// TLS Options
+	flags.BoolVarP(&useTls, "tls", "t", false, "Use TLS to connect to the server")
+	flags.BoolVarP(&tlsOptions.Insecure, "tls-insecure", "k", false, "Skip verification of server TLS certificate.")
+	flags.StringVarP(&tlsOptions.ServerName, "tls-servername", "N", "", "Override the server name used for the TLS handshake.")
 }
 
 func runCall(cmd *cobra.Command, args []string) error {
+	if useTls {
+		callOptions.TLS = tlsOptions
+	}
 	// Parse and return the URI in a format we can expect
 	parsedURI, err := util.ParseURI(uri)
 	if err != nil {
@@ -119,7 +132,7 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	// TODO: A lot of this logic should get pulled out
 	address := formatAddress(uri)
 	logger.Debug("Dialing request", zap.String("address", address))
-	clientConn, err := grpc.Dial(address, grpc.WithInsecure())
+	clientConn, err := grpc.Dial(address, callOptions.DialOptions()...)
 	if err != nil {
 		return nil, log.WrapError(err)
 	}
