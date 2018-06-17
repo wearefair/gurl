@@ -1,11 +1,36 @@
-package grpc
+package protobuf
 
 import (
 	"path/filepath"
 	"testing"
-
-	"github.com/wearefair/gurl/util"
 )
+
+func TestNormalizeMessageName(t *testing.T) {
+	testCases := []struct {
+		Input    string
+		Expected string
+	}{
+		{
+			Input:    ".fakeMessage",
+			Expected: "fakeMessage",
+		},
+		{
+			Input:    "anotherMessage",
+			Expected: "anotherMessage",
+		},
+		{
+			Input:    "",
+			Expected: "",
+		},
+	}
+
+	for _, testCase := range testCases {
+		normalized := NormalizeMessageName(testCase.Input)
+		if normalized != testCase.Expected {
+			t.Errorf("Expected: %s, got: %s", testCase.Expected, normalized)
+		}
+	}
+}
 
 // Tests the construction of a message descriptor using the
 // helloworld.proto found in the test folder. This is not
@@ -32,7 +57,7 @@ func TestConstruct(t *testing.T) {
 	}
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
 	messageDescriptor, err := collector.GetMessage(
-		util.NormalizeMessageName(*methodProto.InputType),
+		NormalizeMessageName(*methodProto.InputType),
 	)
 	if err != nil {
 		t.Errorf("Error getting message for method %s", err.Error())

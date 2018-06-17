@@ -1,4 +1,4 @@
-package grpc
+package protobuf
 
 import (
 	"os"
@@ -9,7 +9,7 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
-	"github.com/wearefair/gurl/log"
+	"github.com/wearefair/gurl/pkg/log"
 
 	set "gopkg.in/fatih/set.v0"
 )
@@ -17,6 +17,11 @@ import (
 var (
 	logger = log.Logger()
 )
+
+// Trims starting "." because message names from the input types come in with a "." prepended
+func NormalizeMessageName(name string) string {
+	return strings.TrimLeft(name, ".")
+}
 
 // Construct takes a message descriptor and a message, as a JSON string and
 // returns it as a message, or an error if there's issues marshalling

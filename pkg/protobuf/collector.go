@@ -1,10 +1,10 @@
-package grpc
+package protobuf
 
 import (
 	"fmt"
 
 	"github.com/jhump/protoreflect/desc"
-	"github.com/wearefair/gurl/log"
+	"github.com/wearefair/gurl/pkg/log"
 )
 
 // Collector holds onto a cache of descriptors

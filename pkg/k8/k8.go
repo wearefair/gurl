@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/wearefair/gurl/log"
+	"github.com/wearefair/gurl/pkg/log"
 	"go.uber.org/zap"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
