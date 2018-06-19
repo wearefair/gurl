@@ -19,6 +19,7 @@ import (
 	"github.com/wearefair/gurl/pkg/util"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -29,9 +30,10 @@ var (
 	port int
 	uri  string
 
-	callOptions = &options.Options{}
-	tlsOptions  = &options.TLS{}
-	useTls      bool
+	callOptions     = &options.Options{Metadata: metadata.MD{}}
+	tlsOptions      = &options.TLS{}
+	metadataOptions = flagMetadata(callOptions.Metadata)
+	useTls          bool
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -53,12 +55,16 @@ func init() {
 	flags.BoolVarP(&useTls, "tls", "t", false, "Use TLS to connect to the server")
 	flags.BoolVarP(&tlsOptions.Insecure, "tls-insecure", "k", false, "Skip verification of server TLS certificate.")
 	flags.StringVarP(&tlsOptions.ServerName, "tls-servername", "N", "", "Override the server name used for the TLS handshake.")
+
+	// Metadata options
+	flags.VarP(metadataOptions, "header", "H", "Set header in the format '<Header-Name>:<Header-Value>'")
 }
 
 func runCall(cmd *cobra.Command, args []string) error {
 	if useTls {
 		callOptions.TLS = tlsOptions
 	}
+	logger.Debug("Metadata options", zap.Any("headers", callOptions.Metadata))
 	// Parse and return the URI in a format we can expect
 	parsedURI, err := util.ParseURI(uri)
 	if err != nil {
@@ -143,7 +149,7 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	disableStreaming := false
 	methodProto.ClientStreaming = &disableStreaming
 	methodProto.ServerStreaming = &disableStreaming
-	response, err := stub.InvokeRpc(context.Background(), methodDescriptor, message)
+	response, err := stub.InvokeRpc(callOptions.ContextWithOptions(context.Background()), methodDescriptor, message)
 	if err != nil {
 		return nil, log.WrapError(err)
 	}
