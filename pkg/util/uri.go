@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/wearefair/gurl/log"
+	"github.com/wearefair/gurl/pkg/log"
 )
 
 const (

@@ -12,7 +12,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/wearefair/gurl/log"
+	"github.com/wearefair/gurl/pkg/log"
 )
 
 const (
