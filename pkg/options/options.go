@@ -1,6 +1,7 @@
 package options
 
 import (
+	"context"
 	"crypto/tls"
 
 	"google.golang.org/grpc"
@@ -24,6 +25,14 @@ func (o Options) DialOptions() []grpc.DialOption {
 	}
 
 	return options
+}
+
+func (o Options) ContextWithOptions(ctx context.Context) context.Context {
+	if len(o.Metadata) != 0 {
+		return metadata.NewOutgoingContext(ctx, o.Metadata)
+	}
+
+	return ctx
 }
 
 type TLS struct {
