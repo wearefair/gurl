@@ -81,11 +81,11 @@ func Save(config *Config) error {
 	configDir := filepath.Join(homeDir(), configDir)
 	contents, err := yaml.Marshal(config)
 	if err != nil {
-		return log.LogError(err)
+		return log.LogAndReturn(err)
 	}
 	err = os.MkdirAll(configDir, 0744)
 	if err != nil {
-		return log.LogError(err)
+		return log.LogAndReturn(err)
 	}
 	return ioutil.WriteFile(filepath.Join(homeDir(), configFile), contents, 0644)
 }

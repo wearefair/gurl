@@ -46,12 +46,12 @@ func Warningf(format string, args ...interface{}) {
 	}
 }
 
-// LogError is a helper func to log the error passed in and also return the err.
+// LogAndReturn is a helper func to log the error passed in and also return the err.
 // This helps with patterns where you want to log the error before returning from a function.
 //  if err != nil {
-//    return nil, log.LogError(err)
+//    return nil, log.LogAndReturn(err)
 //  }
-func LogError(err error) error {
+func LogAndReturn(err error) error {
 	if err != nil && glog.V(level) {
 		glog.ErrorDepth(1, err)
 	}

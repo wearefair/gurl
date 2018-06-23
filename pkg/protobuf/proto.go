@@ -25,7 +25,7 @@ func Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dyna
 	message := dynamic.NewMessage(messageDescriptor)
 	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), message)
 	if err != nil {
-		return nil, log.LogError(err)
+		return nil, log.LogAndReturn(err)
 	}
 	return message, nil
 }
@@ -42,7 +42,7 @@ func Collect(importPaths, servicePaths []string) ([]*desc.FileDescriptor, error)
 	parser := protoparse.Parser{ImportPaths: concat}
 	descriptors, err := parser.ParseFiles(set.StringSlice(paths)...)
 	if err != nil {
-		return nil, log.LogError(err)
+		return nil, log.LogAndReturn(err)
 	}
 	return descriptors, nil
 }

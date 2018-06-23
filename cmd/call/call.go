@@ -90,7 +90,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.RPC)
 	if methodDescriptor == nil {
 		err := fmt.Errorf("No method %s found", parsedURI.RPC)
-		return log.LogError(err)
+		return log.LogAndReturn(err)
 	}
 
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
@@ -128,7 +128,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	var prettyResponse bytes.Buffer
 	err = json.Indent(&prettyResponse, response, "", "  ")
 	if err != nil {
-		return log.LogError(err)
+		return log.LogAndReturn(err)
 	}
 	fmt.Printf("Response:\n%s\n", prettyResponse.String())
 	return nil
@@ -141,7 +141,7 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	log.Infof("Dialing address: %s", address)
 	clientConn, err := grpc.Dial(address, callOptions.DialOptions()...)
 	if err != nil {
-		return nil, log.LogError(err)
+		return nil, log.LogAndReturn(err)
 	}
 	stub := grpcdynamic.NewStub(clientConn)
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
@@ -152,13 +152,13 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	methodProto.ServerStreaming = &disableStreaming
 	response, err := stub.InvokeRpc(callOptions.ContextWithOptions(context.Background()), methodDescriptor, message)
 	if err != nil {
-		return nil, log.LogError(err)
+		return nil, log.LogAndReturn(err)
 	}
 	marshaler := &runtime.JSONPb{}
 	// Marshals PB response into JSON
 	responseJSON, err := marshaler.Marshal(response)
 	if err != nil {
-		return nil, log.LogError(err)
+		return nil, log.LogAndReturn(err)
 	}
 	return responseJSON, nil
 }
