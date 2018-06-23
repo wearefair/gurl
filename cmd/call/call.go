@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
@@ -66,17 +65,13 @@ func runCall(cmd *cobra.Command, args []string) error {
 	if useTls {
 		callOptions.TLS = tlsOptions
 	}
-	if glog.V(2) {
-		glog.Infof("Metadata options: %#v", callOptions.Metadata)
-	}
+	log.Infof("Metadata options: %#v", callOptions.Metadata)
 	// Parse and return the URI in a format we can expect
 	parsedURI, err := util.ParseURI(uri)
 	if err != nil {
 		return err
 	}
-	if glog.V(2) {
-		glog.Infof("Parsed URI: %#v", parsedURI)
-	}
+	log.Infof("Parsed URI: %#v", parsedURI)
 
 	// Walks the proto import and service paths defined in the config and returns all descriptors
 	descriptors, err := protobuf.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
@@ -95,7 +90,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.RPC)
 	if methodDescriptor == nil {
 		err := fmt.Errorf("No method %s found", parsedURI.RPC)
-		return log.WrapError(2, err)
+		return log.LogError(err)
 	}
 
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
@@ -133,7 +128,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	var prettyResponse bytes.Buffer
 	err = json.Indent(&prettyResponse, response, "", "  ")
 	if err != nil {
-		return log.WrapError(2, err)
+		return log.LogError(err)
 	}
 	fmt.Printf("Response:\n%s\n", prettyResponse.String())
 	return nil
@@ -143,12 +138,10 @@ func runCall(cmd *cobra.Command, args []string) error {
 func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
 	// TODO: A lot of this logic should get pulled out
 	address := formatAddress(uri)
-	if glog.V(2) {
-		glog.Infof("Dialing address: %s", address)
-	}
+	log.Infof("Dialing address: %s", address)
 	clientConn, err := grpc.Dial(address, callOptions.DialOptions()...)
 	if err != nil {
-		return nil, log.WrapError(2, err)
+		return nil, log.LogError(err)
 	}
 	stub := grpcdynamic.NewStub(clientConn)
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
@@ -159,13 +152,13 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	methodProto.ServerStreaming = &disableStreaming
 	response, err := stub.InvokeRpc(callOptions.ContextWithOptions(context.Background()), methodDescriptor, message)
 	if err != nil {
-		return nil, log.WrapError(2, err)
+		return nil, log.LogError(err)
 	}
 	marshaler := &runtime.JSONPb{}
 	// Marshals PB response into JSON
 	responseJSON, err := marshaler.Marshal(response)
 	if err != nil {
-		return nil, log.WrapError(2, err)
+		return nil, log.LogError(err)
 	}
 	return responseJSON, nil
 }

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	"github.com/wearefair/gurl/pkg/log"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -51,9 +52,7 @@ type PortForward struct {
 func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*PortForward, error) {
 	rawConfig, err := config.RawConfig()
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - error getting raw config: %s", err)
-		}
+		log.Errorf("port-forward - error getting raw config: %s", err)
 		return nil, err
 	}
 
@@ -63,9 +62,7 @@ func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*P
 
 	clientConfig, err := newConfig.ClientConfig()
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to get client config: %s", err)
-		}
+		log.Errorf("port-forward - failed to get client config: %s", err)
 		return nil, err
 	}
 
@@ -76,9 +73,7 @@ func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*P
 
 	localPort, err := getAvailablePort()
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to get a port: %s", err)
-		}
+		log.Errorf("port-forward - failed to get a port: %s", err)
 		return nil, err
 	}
 
@@ -93,13 +88,11 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 	if req.Namespace == "" {
 		ns, _, err := config.Namespace()
 		if err != nil {
-			if glog.V(2) {
-				glog.Errorf("port-forward - error getting namespace from config: %s", err)
-			}
+			log.Errorf("port-forward - error getting namespace from config: %s", err)
 			return nil, err
 		}
 		if ns == "" {
-			if glog.V(3) {
+			if glog.V(2) {
 				glog.Infof("port-forward - namespace was empty, now setting to default: %s", defaultNamespace)
 			}
 			ns = defaultNamespace
@@ -109,9 +102,7 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 
 	pod, remotePort, err := getPodNameAndRemotePort(client, req)
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to get pod and remote port: %s", err)
-		}
+		glog.Errorf("port-forward - failed to get pod and remote port: %s", err)
 		return nil, err
 	}
 
@@ -121,16 +112,14 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 		stopCoordinator: &sync.Once{},
 	}
 
-	if glog.V(3) {
+	if glog.V(2) {
 		glog.Infof("port-forward - setting up connection: namespace=%s, pod=%s, remote-port=%s",
 			req.Namespace, pod, remotePort)
 	}
 
 	errChan, err := activePortForward.connect(client, req.Namespace, pod, remotePort)
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to start port forward: %s", err)
-		}
+		log.Errorf("port-forward - failed to start port forward: %s", err)
 		return nil, err
 	}
 
@@ -140,9 +129,7 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 	go func() {
 		err := <-errChan
 		if err != nil {
-			if glog.V(2) {
-				glog.Errorf("port-forward - error from active connection: %s", err)
-			}
+			log.Errorf("port-forward - error from active connection: %s", err)
 		}
 		activePortForward.Close()
 	}()
@@ -178,14 +165,12 @@ func (p *PortForward) connect(client k8Client, namespace, podName, remotePort st
 
 	restClient, err := rest.RESTClientFor(&config)
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to create restclient: %s", err)
-		}
+		log.Errorf("port-forward - failed to create restclient: %s", err)
 		return nil, err
 	}
 
 	url := restClient.Post().Resource("pods").Namespace(namespace).Name(podName).SubResource("portforward").URL()
-	if glog.V(3) {
+	if glog.V(2) {
 		glog.Infof("port-forward - constructed url for pod: %#v", url)
 	}
 
@@ -193,9 +178,7 @@ func (p *PortForward) connect(client k8Client, namespace, podName, remotePort st
 	readyChannel := make(chan struct{}, 1)
 	forwarder, err := client.PortForwarder(url, p.localPort, remotePort, readyChannel, p.stopChannel)
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to create portforward: %s", err)
-		}
+		log.Errorf("port-forward - failed to create portforward: %s", err)
 		return nil, err
 	}
 

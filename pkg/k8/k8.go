@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/golang/glog"
+	"github.com/wearefair/gurl/pkg/log"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -33,9 +33,7 @@ type k8PortForwarder interface {
 func newK8Client(config *rest.Config) (*k8ClientImpl, error) {
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to create k8 client: %s", err)
-		}
+		log.Errorf("port-forward - failed to create k8 client: %s", err)
 		return nil, err
 	}
 
@@ -65,9 +63,7 @@ func (k *k8ClientImpl) Endpoints(namespace, name string) (*v1.Endpoints, error) 
 func (k *k8ClientImpl) PortForwarder(url *url.URL, localPort, remotePort string, ready, stop chan struct{}) (k8PortForwarder, error) {
 	transport, upgrader, err := spdy.RoundTripperFor(k.config)
 	if err != nil {
-		if glog.V(2) {
-			glog.Errorf("port-forward - failed to create roundtripper: %s", err)
-		}
+		log.Errorf("port-forward - failed to create roundtripper: %s", err)
 		return nil, err
 	}
 

@@ -81,11 +81,11 @@ func Save(config *Config) error {
 	configDir := filepath.Join(homeDir(), configDir)
 	contents, err := yaml.Marshal(config)
 	if err != nil {
-		return log.WrapError(2, err)
+		return log.LogError(err)
 	}
 	err = os.MkdirAll(configDir, 0744)
 	if err != nil {
-		return log.WrapError(2, err)
+		return log.LogError(err)
 	}
 	return ioutil.WriteFile(filepath.Join(homeDir(), configFile), contents, 0644)
 }
@@ -115,9 +115,7 @@ func parsePath(reader *bufio.Reader, description string, existing string) string
 	fmt.Println(description + ": ")
 	val, err := reader.ReadString('\n')
 	if err != nil {
-		if glog.V(2) {
-			glog.Error(err)
-		}
+		log.Error(err)
 		return ""
 	}
 	// Strip newline
