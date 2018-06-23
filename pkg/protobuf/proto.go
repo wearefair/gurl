@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic"
@@ -23,7 +23,7 @@ func NormalizeMessageName(name string) string {
 // returns it as a message, or an error if there's issues marshalling
 func Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
 	message := dynamic.NewMessage(messageDescriptor)
-	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), message)
+	err := jsonpb.UnmarshalString(request, message)
 	if err != nil {
 		return nil, log.WrapError(2, err)
 	}

@@ -81,16 +81,6 @@
   revision = "2bcd89a1743fd4b373f7370ce8ddc14dfbd18229"
 
 [[projects]]
-  name = "github.com/grpc-ecosystem/grpc-gateway"
-  packages = [
-    "runtime",
-    "runtime/internal",
-    "utilities"
-  ]
-  revision = "8cc3a55af3bcf171a1c23a90c4df9cf591706104"
-  version = "v1.3.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/howeyc/gopass"
   packages = ["."]
@@ -406,6 +396,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3633bfeb9253612d4b8d165f0f1c43884936c5d047ca85a1f8a943d087c4d68f"
+  inputs-digest = "0ce540e2c5590d7422157190c14a0a3f111a455e6ecbf91e2769d6ef9a7fb48d"
   solver-name = "gps-cdcl"
   solver-version = 1

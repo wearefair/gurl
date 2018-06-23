@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/spf13/cobra"
@@ -161,13 +161,13 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	if err != nil {
 		return nil, log.WrapError(2, err)
 	}
-	marshaler := &runtime.JSONPb{}
+	marshaler := &jsonpb.Marshaler{}
 	// Marshals PB response into JSON
-	responseJSON, err := marshaler.Marshal(response)
+	responseJSON, err := marshaler.MarshalToString(response)
 	if err != nil {
 		return nil, log.WrapError(2, err)
 	}
-	return responseJSON, nil
+	return []byte(responseJSON), nil
 }
 
 // Helper func to format an address. Right now, this is only needed because K8
