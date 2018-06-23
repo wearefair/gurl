@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 
+	"github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
@@ -17,15 +19,13 @@ import (
 	"github.com/wearefair/gurl/pkg/options"
 	"github.com/wearefair/gurl/pkg/protobuf"
 	"github.com/wearefair/gurl/pkg/util"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
-	logger = log.Logger()
-	data   string
+	data string
 	// host:port/service_name/method_name
 	port int
 	uri  string
@@ -45,6 +45,8 @@ var CallCmd = &cobra.Command{
 
 func init() {
 	flags := CallCmd.Flags()
+	// Add any flags that were registered on the built-in flag package.
+	flags.AddGoFlagSet(flag.CommandLine)
 
 	flags.StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
 	flags.StringVarP(&data, "data", "d", "", "Data, as JSON string, to send to the gRPC service")
@@ -64,13 +66,17 @@ func runCall(cmd *cobra.Command, args []string) error {
 	if useTls {
 		callOptions.TLS = tlsOptions
 	}
-	logger.Debug("Metadata options", zap.Any("headers", callOptions.Metadata))
+	if glog.V(2) {
+		glog.Infof("Metadata options: %#v", callOptions.Metadata)
+	}
 	// Parse and return the URI in a format we can expect
 	parsedURI, err := util.ParseURI(uri)
 	if err != nil {
 		return err
 	}
-	logger.Debug("Parsed URI", zap.Any("uri", parsedURI))
+	if glog.V(2) {
+		glog.Infof("Parsed URI: %#v", parsedURI)
+	}
 
 	// Walks the proto import and service paths defined in the config and returns all descriptors
 	descriptors, err := protobuf.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
@@ -89,7 +95,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.RPC)
 	if methodDescriptor == nil {
 		err := fmt.Errorf("No method %s found", parsedURI.RPC)
-		return log.WrapError(err)
+		return log.WrapError(2, err)
 	}
 
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
@@ -127,7 +133,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	var prettyResponse bytes.Buffer
 	err = json.Indent(&prettyResponse, response, "", "  ")
 	if err != nil {
-		return log.WrapError(err)
+		return log.WrapError(2, err)
 	}
 	fmt.Printf("Response:\n%s\n", prettyResponse.String())
 	return nil
@@ -137,10 +143,12 @@ func runCall(cmd *cobra.Command, args []string) error {
 func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
 	// TODO: A lot of this logic should get pulled out
 	address := formatAddress(uri)
-	logger.Debug("Dialing request", zap.String("address", address))
+	if glog.V(2) {
+		glog.Infof("Dialing address: %s", address)
+	}
 	clientConn, err := grpc.Dial(address, callOptions.DialOptions()...)
 	if err != nil {
-		return nil, log.WrapError(err)
+		return nil, log.WrapError(2, err)
 	}
 	stub := grpcdynamic.NewStub(clientConn)
 	methodProto := methodDescriptor.AsMethodDescriptorProto()
@@ -151,13 +159,13 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	methodProto.ServerStreaming = &disableStreaming
 	response, err := stub.InvokeRpc(callOptions.ContextWithOptions(context.Background()), methodDescriptor, message)
 	if err != nil {
-		return nil, log.WrapError(err)
+		return nil, log.WrapError(2, err)
 	}
 	marshaler := &runtime.JSONPb{}
 	// Marshals PB response into JSON
 	responseJSON, err := marshaler.Marshal(response)
 	if err != nil {
-		return nil, log.WrapError(err)
+		return nil, log.WrapError(2, err)
 	}
 	return responseJSON, nil
 }

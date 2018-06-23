@@ -68,7 +68,7 @@ func (c *Collector) GetMessage(name string) (*desc.MessageDescriptor, error) {
 	descriptor, ok := c.MessageCache[name]
 	if !ok {
 		err := fmt.Errorf("No message descriptor found for %s", name)
-		return nil, log.WrapError(err)
+		return nil, log.WrapError(2, err)
 	}
 	return descriptor, nil
 }
@@ -79,7 +79,7 @@ func (c *Collector) GetService(name string) (*desc.ServiceDescriptor, error) {
 	descriptor, ok := c.ServiceCache[name]
 	if !ok {
 		err := fmt.Errorf("No service descriptor found for %s", name)
-		return nil, log.WrapError(err)
+		return nil, log.WrapError(2, err)
 	}
 	return descriptor, nil
 }
