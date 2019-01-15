@@ -5,8 +5,19 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.9
+      - image: circleci/golang:1.10
     working_directory: /go/src/github.com/wearefair/gurl
     steps:
       - checkout
-      - run: go test -v ./...
+      - restore_cache:
+          keys:
+              - vendor-dir-{{ checksum "Gopkg.lock" }}
+      - run:
+          name: Install deps
+          command: dep ensure -v
+      - run:
+          name: Run tests
+          command: go test -v -race ./...
+      - run:
+          name: Verify binary can build
+          command: go build -v
