@@ -1,42 +1,59 @@
+// Thin wrappers around the glog package to faciliate the most common case of logging on level 1.
+//
+// These are less performant than using glog directly as we can't short-circut any work
+// if we aren't at or above level 1.
+// However because of the use-case of this program (CLI tool to debug gRPC apis), we consider the
+// performance pentalty to be negligible.
 package log
 
-import (
-	"sync"
+import "github.com/golang/glog"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-)
+const level = 1
 
-var (
-	logger *zap.Logger
-	once   sync.Once
-)
-
-// Create instance of logger with colorized logging and stack trace disabled
-func instance() *zap.Logger {
-	var err error
-	once.Do(func() {
-		config := zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		config.DisableStacktrace = true
-		logger, err = config.Build()
-		if err != nil {
-			panic(err)
-		}
-		defer logger.Sync()
-	})
-	return logger
+func Error(args ...interface{}) {
+	if glog.V(level) {
+		glog.Error(args...)
+	}
 }
 
-// Logger returns the instance of logger
-func Logger() *zap.Logger {
-	return instance()
+func Errorf(format string, args ...interface{}) {
+	if glog.V(level) {
+		glog.Errorf(format, args...)
+	}
 }
 
-// WrapError is a helper func to log the error passed in and also return the err
-func WrapError(err error) error {
-	if err != nil {
-		Logger().Error(err.Error())
+func Info(args ...interface{}) {
+	if glog.V(level) {
+		glog.Info(args...)
+	}
+}
+
+func Infof(format string, args ...interface{}) {
+	if glog.V(level) {
+		glog.Infof(format, args...)
+	}
+}
+
+func Warning(args ...interface{}) {
+	if glog.V(level) {
+		glog.Warning(args...)
+	}
+}
+
+func Warningf(format string, args ...interface{}) {
+	if glog.V(level) {
+		glog.Warningf(format, args...)
+	}
+}
+
+// LogAndReturn is a helper func to log the error passed in and also return the err.
+// This helps with patterns where you want to log the error before returning from a function.
+//  if err != nil {
+//    return nil, log.LogAndReturn(err)
+//  }
+func LogAndReturn(err error) error {
+	if err != nil && glog.V(level) {
+		glog.ErrorDepth(1, err)
 	}
 	return err
 }

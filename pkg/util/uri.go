@@ -65,7 +65,7 @@ func ParseURI(uri string) (*URI, error) {
 	// host:port/service/method
 	submatches := uriRegexp.FindStringSubmatch(uri)
 	if submatches == nil {
-		return nil, log.WrapError(errInvalidURIFormat)
+		return nil, log.LogAndReturn(errInvalidURIFormat)
 	}
 
 	for i, name := range uriRegexp.SubexpNames() {
@@ -76,7 +76,7 @@ func ParseURI(uri string) (*URI, error) {
 		namedMatches[name] = submatches[i]
 	}
 	if len(namedMatches) < 1 {
-		return nil, log.WrapError(errInvalidURIFormat)
+		return nil, log.LogAndReturn(errInvalidURIFormat)
 	}
 	uriWrapper := &URI{
 		Protocol: namedMatches["protocol"],

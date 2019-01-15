@@ -12,6 +12,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/golang/glog"
 	"github.com/wearefair/gurl/pkg/log"
 )
 
@@ -22,7 +23,6 @@ const (
 
 var (
 	instance *Config
-	logger   = log.Logger()
 	once     sync.Once
 )
 
@@ -46,7 +46,7 @@ type Config struct {
 func homeDir() string {
 	usr, err := user.Current()
 	if err != nil {
-		logger.Fatal(err.Error())
+		glog.Fatal(err)
 	}
 	return usr.HomeDir
 }
@@ -67,11 +67,11 @@ func Read() *Config {
 	}
 	contents, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		logger.Fatal(err.Error())
+		glog.Fatal(err)
 	}
 	err = yaml.Unmarshal(contents, config)
 	if err != nil {
-		logger.Fatal(err.Error())
+		glog.Fatal(err)
 	}
 	return config
 }
@@ -81,13 +81,11 @@ func Save(config *Config) error {
 	configDir := filepath.Join(homeDir(), configDir)
 	contents, err := yaml.Marshal(config)
 	if err != nil {
-		logger.Error(err.Error())
-		return err
+		return log.LogAndReturn(err)
 	}
 	err = os.MkdirAll(configDir, 0744)
 	if err != nil {
-		logger.Error(err.Error())
-		return err
+		return log.LogAndReturn(err)
 	}
 	return ioutil.WriteFile(filepath.Join(homeDir(), configFile), contents, 0644)
 }
@@ -117,7 +115,7 @@ func parsePath(reader *bufio.Reader, description string, existing string) string
 	fmt.Println(description + ": ")
 	val, err := reader.ReadString('\n')
 	if err != nil {
-		logger.Error(err.Error())
+		log.Error(err)
 		return ""
 	}
 	// Strip newline

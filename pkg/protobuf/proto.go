@@ -14,10 +14,6 @@ import (
 	set "gopkg.in/fatih/set.v0"
 )
 
-var (
-	logger = log.Logger()
-)
-
 // Trims starting "." because message names from the input types come in with a "." prepended
 func NormalizeMessageName(name string) string {
 	return strings.TrimLeft(name, ".")
@@ -29,7 +25,7 @@ func Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dyna
 	message := dynamic.NewMessage(messageDescriptor)
 	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), message)
 	if err != nil {
-		return nil, log.WrapError(err)
+		return nil, log.LogAndReturn(err)
 	}
 	return message, nil
 }
@@ -46,7 +42,7 @@ func Collect(importPaths, servicePaths []string) ([]*desc.FileDescriptor, error)
 	parser := protoparse.Parser{ImportPaths: concat}
 	descriptors, err := parser.ParseFiles(set.StringSlice(paths)...)
 	if err != nil {
-		return nil, log.WrapError(err)
+		return nil, log.LogAndReturn(err)
 	}
 	return descriptors, nil
 }

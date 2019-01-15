@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/wearefair/gurl/pkg/log"
-	"go.uber.org/zap"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,8 +16,6 @@ import (
 )
 
 const defaultNamespace = "default"
-
-var logger = log.Logger()
 
 // Interface for handling K8 operations
 type k8Client interface {
@@ -36,7 +33,7 @@ type k8PortForwarder interface {
 func newK8Client(config *rest.Config) (*k8ClientImpl, error) {
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		logger.Error("port-forward - failed to create k8 client", zap.Error(err))
+		log.Errorf("port-forward - failed to create k8 client: %s", err)
 		return nil, err
 	}
 
@@ -66,7 +63,7 @@ func (k *k8ClientImpl) Endpoints(namespace, name string) (*v1.Endpoints, error) 
 func (k *k8ClientImpl) PortForwarder(url *url.URL, localPort, remotePort string, ready, stop chan struct{}) (k8PortForwarder, error) {
 	transport, upgrader, err := spdy.RoundTripperFor(k.config)
 	if err != nil {
-		logger.Error("port-forward - failed to create roundtripper", zap.Error(err))
+		log.Errorf("port-forward - failed to create roundtripper: %s", err)
 		return nil, err
 	}
 

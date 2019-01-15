@@ -1,9 +1,9 @@
 package config
 
 import (
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/wearefair/gurl/pkg/config"
-	"github.com/wearefair/gurl/pkg/log"
 )
 
 var ConfigCmd = &cobra.Command{
@@ -22,6 +22,6 @@ func configure(cmd *cobra.Command, args []string) {
 	conf := config.Instance()
 	err := config.Save(conf)
 	if err != nil {
-		log.Logger().Fatal(err.Error())
+		glog.Fatal(err)
 	}
 }

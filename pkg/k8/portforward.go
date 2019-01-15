@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"sync"
 
-	"go.uber.org/zap"
+	"github.com/golang/glog"
+	"github.com/wearefair/gurl/pkg/log"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -50,7 +52,7 @@ type PortForward struct {
 func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*PortForward, error) {
 	rawConfig, err := config.RawConfig()
 	if err != nil {
-		logger.Error("port-forward - error getting raw config", zap.Error(err))
+		log.Errorf("port-forward - error getting raw config: %s", err)
 		return nil, err
 	}
 
@@ -60,7 +62,7 @@ func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*P
 
 	clientConfig, err := newConfig.ClientConfig()
 	if err != nil {
-		logger.Error("port-forward - failed to get client config", zap.Error(err))
+		log.Errorf("port-forward - failed to get client config: %s", err)
 		return nil, err
 	}
 
@@ -71,7 +73,7 @@ func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*P
 
 	localPort, err := getAvailablePort()
 	if err != nil {
-		logger.Error("port-forward - failed to get a port", zap.Error(err))
+		log.Errorf("port-forward - failed to get a port: %s", err)
 		return nil, err
 	}
 
@@ -86,11 +88,13 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 	if req.Namespace == "" {
 		ns, _, err := config.Namespace()
 		if err != nil {
-			logger.Error("port-forward - error getting namespace from config", zap.Error(err))
+			log.Errorf("port-forward - error getting namespace from config: %s", err)
 			return nil, err
 		}
 		if ns == "" {
-			logger.Debug("port-forward - namespace was empty, now setting to default", zap.String("namespace", defaultNamespace))
+			if glog.V(2) {
+				glog.Infof("port-forward - namespace was empty, now setting to default: %s", defaultNamespace)
+			}
 			ns = defaultNamespace
 		}
 		req.Namespace = ns
@@ -98,7 +102,7 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 
 	pod, remotePort, err := getPodNameAndRemotePort(client, req)
 	if err != nil {
-		logger.Error("port-forward - failed to get pod and remote port", zap.Error(err))
+		glog.Errorf("port-forward - failed to get pod and remote port: %s", err)
 		return nil, err
 	}
 
@@ -108,15 +112,14 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 		stopCoordinator: &sync.Once{},
 	}
 
-	logger.Debug("port-forward - setting up pf connection with the following info",
-		zap.String("namespace", req.Namespace),
-		zap.String("pod", pod),
-		zap.String("remote-port", remotePort),
-	)
+	if glog.V(2) {
+		glog.Infof("port-forward - setting up connection: namespace=%s, pod=%s, remote-port=%s",
+			req.Namespace, pod, remotePort)
+	}
 
 	errChan, err := activePortForward.connect(client, req.Namespace, pod, remotePort)
 	if err != nil {
-		logger.Error("port-forward - failed to start port forward", zap.Error(err))
+		log.Errorf("port-forward - failed to start port forward: %s", err)
 		return nil, err
 	}
 
@@ -126,7 +129,7 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 	go func() {
 		err := <-errChan
 		if err != nil {
-			logger.Error("port-forward - error from active connection", zap.Error(err))
+			log.Errorf("port-forward - error from active connection: %s", err)
 		}
 		activePortForward.Close()
 	}()
@@ -162,18 +165,20 @@ func (p *PortForward) connect(client k8Client, namespace, podName, remotePort st
 
 	restClient, err := rest.RESTClientFor(&config)
 	if err != nil {
-		logger.Error("port-forward - failed to create restclient", zap.Error(err))
+		log.Errorf("port-forward - failed to create restclient: %s", err)
 		return nil, err
 	}
 
 	url := restClient.Post().Resource("pods").Namespace(namespace).Name(podName).SubResource("portforward").URL()
-	logger.Debug("port-forward - constructed url for pod", zap.Any("url", url))
+	if glog.V(2) {
+		glog.Infof("port-forward - constructed url for pod: %#v", url)
+	}
 
 	// Use this channel to block until the connection is ready.
 	readyChannel := make(chan struct{}, 1)
 	forwarder, err := client.PortForwarder(url, p.localPort, remotePort, readyChannel, p.stopChannel)
 	if err != nil {
-		logger.Error("port-forward - failed to create portforward", zap.Error(err))
+		log.Errorf("port-forward - failed to create portforward: %s", err)
 		return nil, err
 	}
 
