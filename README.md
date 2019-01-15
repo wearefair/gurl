@@ -33,7 +33,7 @@ gurl config
 gURL will prompt for your import paths and service paths (the nomenclature for these paths is poor and prone to change.) Both are just a comma delimited list of absolute paths to your proto files.
 
 ### Request Format
-gurl's request format is as follows:
+gURL's request format is as follows:
 ```bash
 gurl -u <protocol|optional>://<k8-context|optional>/<host|kubernetes-service-name>:<port>/<service>/<rpc> -d '{ "field_name": "field_value" }'
 ```
@@ -74,4 +74,3 @@ If you don't see anything listed, feel free to open an issue or pull request to 
 
 ### Special Thanks
 Huge props to [jhump](https://github.com/jhump) for his [protoreflect](https://github.com/jhump/protoreflect) package, which gURL makes heavy use of.
-
