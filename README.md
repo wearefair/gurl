@@ -1,4 +1,4 @@
-## GRPC Curl
+## gURL (gRPC cURL)
 A tool for curling gRPC services.
 
 ### Why?
@@ -64,5 +64,14 @@ Places to improve:
 - gurl configurations that are local to a project
 - Pass in proto files as an arg instead of as a configuration
 
+### Contributing to gURL
+There's a lot of potential work to be done for gURL and we welcome contributions.
+
+#### How to Contribute
+If you're interested in contributing, first look through gURL's [issues](https://github.com/wearefair/gurl/issues) and [pull requests](https://github.com/wearefair/gurl/pulls) for anything that might be similar (there's no reason to unnecessarily duplicate work).
+
+If you don't see anything listed, feel free to open an issue or pull request to open up a discussion.
+
 ### Special Thanks
 Huge props to [jhump](https://github.com/jhump) for his [protoreflect](https://github.com/jhump/protoreflect) package, which gurl makes heavy use of.
+
