@@ -67,7 +67,7 @@ Places to improve:
 ### Contributing to gURL
 There's a lot of potential work to be done for gURL and we welcome contributions.
 
-####" How to Contribute
+#### How to Contribute
 If you're interested in contributing, first look through gURL's [issues](https://github.com/wearefair/gurl/issues) and [pull requests](https://github.com/wearefair/gurl/pulls) for anything that might be similar (there's no reason to unnecessarily duplicate work).
 
 If you don't see anything listed, feel free to open an issue or pull request to open up a discussion.
