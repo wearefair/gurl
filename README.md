@@ -30,7 +30,18 @@ Configure gURL with the *absolute path* to your protos, so it can load them.
 gurl config
 ```
 
-gURL will prompt for your import paths and service paths (the nomenclature for these paths is poor and prone to change.) Both are just a comma delimited list of absolute paths to your proto files.
+gURL will prompt for your import paths and service paths (the nomenclature for these paths is poor and prone to change.) Both are just a comma delimited list of absolute paths to your proto files. The distinction is that your import paths are external protos that you're importing, and your service paths are your protos.
+
+Here is an example of a gURL config (found at $HOME/.gurl/config):
+
+```yaml
+local:
+  importpaths:
+  - ""
+  servicepaths:
+  - /Users/johnsmith/go/src/github.com/johnsmith/myprotos
+kubeconfig: /Users/johnsmith/.kube/config
+```
 
 ### Request Format
 gURL's request format is as follows:
