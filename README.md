@@ -21,6 +21,13 @@ make deps
 make build
 ```
 
+This will generate cross platform binaries in the `release/` folder. You'll need to move the relevant binary to somewhere in your $PATH.
+
+Example:
+```bash
+mv gurl-darwin-amd64 /usr/local/bin/gurl
+```
+
 You can also download a copy of gURL on the platform of your choice from gURL's [releases](https://github.com/wearefair/gurl/releases) page.
 
 ### Setup
