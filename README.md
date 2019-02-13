@@ -21,10 +21,11 @@ make deps
 make build
 ```
 
-This will generate cross platform binaries in the `release/` folder. You'll need to move the relevant binary to somewhere in your $PATH.
+This will generate cross platform binaries in the `release/` folder. You'll need to give yourself executable permissions for the relevant binary and then move it somewhere in your $PATH.
 
 Example:
 ```bash
+chmod +x gurl-darwin-amd64
 mv gurl-darwin-amd64 /usr/local/bin/gurl
 ```
 
