@@ -58,7 +58,7 @@ func Instance() *Config {
 	return instance
 }
 
-// Reads in config file from $HOME/.grpccurl and returns the instance of the config
+// Reads in config file from $HOME/.gurl and returns the instance of the config
 func Read() *Config {
 	config := Instance()
 	configPath := filepath.Join(homeDir(), configFile)
@@ -76,7 +76,7 @@ func Read() *Config {
 	return config
 }
 
-// Saves config file in $HOME/.grpccurl or returns an error
+// Saves config file in $HOME/.gurl or returns an error
 func Save(config *Config) error {
 	configDir := filepath.Join(homeDir(), configDir)
 	contents, err := yaml.Marshal(config)
