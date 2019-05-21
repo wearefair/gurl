@@ -1,47 +1,56 @@
-// Thin wrappers around the glog package to faciliate the most common case of logging on level 1.
+// Thin wrappers around the glog package. Level is the minimum log level that'll be logged.
+// In glog, the lower the verbose level, the more messages will be logged.
 //
-// These are less performant than using glog directly as we can't short-circut any work
-// if we aren't at or above level 1.
-// However because of the use-case of this program (CLI tool to debug gRPC apis), we consider the
-// performance pentalty to be negligible.
+// Example, if level = 1, then anything of level 1 will log, but anything of 2 will not.
+// This is an inversion of the severity level. Example - INFO is 0 and ERROR is 2.
+//
+// Therefore, we'll set things to be as follows for verbosity...
+// 2 - INFO
+// 1 - WARN
+// 0 - ERROR
+//
 package log
 
 import "github.com/golang/glog"
 
-const level = 1
+const (
+	errorLevel = iota
+	warnLevel
+	infoLevel
+)
 
 func Error(args ...interface{}) {
-	if glog.V(level) {
+	if glog.V(errorLevel) {
 		glog.Error(args...)
 	}
 }
 
 func Errorf(format string, args ...interface{}) {
-	if glog.V(level) {
+	if glog.V(errorLevel) {
 		glog.Errorf(format, args...)
 	}
 }
 
 func Info(args ...interface{}) {
-	if glog.V(level) {
+	if glog.V(infoLevel) {
 		glog.Info(args...)
 	}
 }
 
 func Infof(format string, args ...interface{}) {
-	if glog.V(level) {
+	if glog.V(infoLevel) {
 		glog.Infof(format, args...)
 	}
 }
 
 func Warning(args ...interface{}) {
-	if glog.V(level) {
+	if glog.V(warnLevel) {
 		glog.Warning(args...)
 	}
 }
 
 func Warningf(format string, args ...interface{}) {
-	if glog.V(level) {
+	if glog.V(warnLevel) {
 		glog.Warningf(format, args...)
 	}
 }
@@ -52,7 +61,7 @@ func Warningf(format string, args ...interface{}) {
 //    return nil, log.LogAndReturn(err)
 //  }
 func LogAndReturn(err error) error {
-	if err != nil && glog.V(level) {
+	if err != nil && glog.V(errorLevel) {
 		glog.ErrorDepth(1, err)
 	}
 	return err

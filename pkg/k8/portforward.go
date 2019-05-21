@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/wearefair/gurl/pkg/log"
 
 	v1 "k8s.io/api/core/v1"
@@ -92,9 +91,7 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 			return nil, err
 		}
 		if ns == "" {
-			if glog.V(2) {
-				glog.Infof("port-forward - namespace was empty, now setting to default: %s", defaultNamespace)
-			}
+			log.Infof("port-forward - namespace was empty, now setting to default: %s", defaultNamespace)
 			ns = defaultNamespace
 		}
 		req.Namespace = ns
@@ -102,7 +99,7 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 
 	pod, remotePort, err := getPodNameAndRemotePort(client, req)
 	if err != nil {
-		glog.Errorf("port-forward - failed to get pod and remote port: %s", err)
+		log.Errorf("port-forward - failed to get pod and remote port: %s", err)
 		return nil, err
 	}
 
@@ -112,10 +109,8 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 		stopCoordinator: &sync.Once{},
 	}
 
-	if glog.V(2) {
-		glog.Infof("port-forward - setting up connection: namespace=%s, pod=%s, remote-port=%s",
-			req.Namespace, pod, remotePort)
-	}
+	log.Infof("port-forward - setting up connection: namespace=%s, pod=%s, remote-port=%s",
+		req.Namespace, pod, remotePort)
 
 	errChan, err := activePortForward.connect(client, req.Namespace, pod, remotePort)
 	if err != nil {
@@ -170,9 +165,7 @@ func (p *PortForward) connect(client k8Client, namespace, podName, remotePort st
 	}
 
 	url := restClient.Post().Resource("pods").Namespace(namespace).Name(podName).SubResource("portforward").URL()
-	if glog.V(2) {
-		glog.Infof("port-forward - constructed url for pod: %#v", url)
-	}
+	log.Infof("port-forward - constructed url for pod: %#v", url)
 
 	// Use this channel to block until the connection is ready.
 	readyChannel := make(chan struct{}, 1)
