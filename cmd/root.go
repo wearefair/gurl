@@ -6,6 +6,7 @@ import (
 	"github.com/wearefair/gurl/cmd/call"
 	configcmd "github.com/wearefair/gurl/cmd/config"
 	"github.com/wearefair/gurl/cmd/list"
+	proxycmd "github.com/wearefair/gurl/cmd/proxy"
 	"github.com/wearefair/gurl/pkg/config"
 )
 
@@ -19,6 +20,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	call.CallCmd.AddCommand(list.ListServicesCmd)
 	call.CallCmd.AddCommand(configcmd.ConfigCmd)
+	call.CallCmd.AddCommand(proxycmd.ProxyCmd)
 }
 
 func initConfig() {

@@ -38,10 +38,12 @@ var CallCmd = &cobra.Command{
 }
 
 func init() {
-	flags := CallCmd.Flags()
 	// Add any flags that were registered on the built-in flag package.
-	flags.AddGoFlagSet(flag.CommandLine)
+	// This is specifically for configuring glog. We want this to be a persistent
+	// flag since we want to be able to handle log configuration for subcommands as well.
+	CallCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
+	flags := CallCmd.Flags()
 	flags.StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
 	flags.StringVarP(&data, "data", "d", "", "Data, as JSON string, to send to the gRPC service")
 	CallCmd.MarkFlagRequired("uri")

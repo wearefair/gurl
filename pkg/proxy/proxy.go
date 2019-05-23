@@ -19,8 +19,9 @@ type Proxy struct {
 	handler func(http.ResponseWriter, *http.Request)
 }
 
-// NewProxy returns an instance of Proxy
-func NewProxy(cfg *Config) *Proxy {
+// New returns an instance of Proxy
+func New(cfg *Config) *Proxy {
+	// TODO: Allow for overriding of the handler
 	r := mux.NewRouter()
 	s := &http.Server{
 		Addr:    cfg.Addr,
