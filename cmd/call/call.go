@@ -139,24 +139,18 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	// TODO: A lot of this logic should get pulled out
 	address := formatAddress(uri)
 	log.Infof("Dialing address: %s", address)
-	clientConn, err := grpc.Dial(address, callOptions.DialOptions()...)
-	if err != nil {
-		return nil, log.LogAndReturn(err)
-	}
-	stub := grpcdynamic.NewStub(clientConn)
-	methodProto := methodDescriptor.AsMethodDescriptorProto()
 
-	// Disabled server and client streaming calls
-	disableStreaming := false
-	methodProto.ClientStreaming = &disableStreaming
-	methodProto.ServerStreaming = &disableStreaming
-	response, err := stub.InvokeRpc(callOptions.ContextWithOptions(context.Background()), methodDescriptor, message)
-	if err != nil {
-		return nil, log.LogAndReturn(err)
+	cfg := &jsonpb.Config{
+		Address: formatAddress(uri),
+		DialOptions: callOptions.DialOptions()...,
 	}
-	marshaler := &runtime.JSONPb{}
-	// Marshals PB response into JSON
-	responseJSON, err := marshaler.Marshal(response)
+
+	client, err := jsonpb.NewClient(cfg)
+	if err != nil {
+		return log.LogAndReturn(err)
+	}
+
+	response, err := client.Call(callOptions.ContextWithOptions(context.Background(), methodDescriptor, message)
 	if err != nil {
 		return nil, log.LogAndReturn(err)
 	}
