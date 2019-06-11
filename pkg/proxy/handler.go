@@ -7,6 +7,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	ServiceKey = "service"
+	MethodKey  = "method"
+)
+
 // RPCRouteHandler takes in a route resembling the following
 // /<gRPC service fully qualified domain name>/<RPC>
 // localhost:50051/fairapis.pubsub.v1.Publish/ListTopics
@@ -19,7 +24,7 @@ func RPCRouteHandler(rw http.ResponseWriter, req *http.Request) {
 	headers := req.Header.Get(ProxyTargetHeader)
 
 	// If the header is not set... return a 422, because we really
-	// can't process this request.
+	// can't process this request. Where are we supposed to forward this to?
 	if headers == "" {
 		rw.WriteHeader(http.StatusUnprocessableEntity)
 		return
@@ -27,8 +32,10 @@ func RPCRouteHandler(rw http.ResponseWriter, req *http.Request) {
 
 	// Pull the variables off of the request
 	vars := mux.Vars(req)
-
 	spew.Dump(vars)
+
+	// service := vars[ServiceKey]
+	// method := vars[MethodKey]
 
 	rw.WriteHeader(http.StatusOK)
 }

@@ -11,7 +11,7 @@ func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := &responseWrapper{ResponseWriter: w}
 		next.ServeHTTP(rw, r)
-		log.Infof("%s %s -%d", r.Method, r.URL, rw.status)
+		log.Infof("%s - [%d] - %s", r.Method, rw.status, r.URL)
 	})
 }
 
