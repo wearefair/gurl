@@ -3,8 +3,8 @@ package jsonpb
 import (
 	"context"
 
-	"github.com/catherinetcai/grpc-gateway/runtime"
 	"github.com/gogo/protobuf/proto"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"google.golang.org/grpc"

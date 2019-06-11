@@ -8,17 +8,15 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/spf13/cobra"
 	"github.com/wearefair/gurl/pkg/config"
+	"github.com/wearefair/gurl/pkg/jsonpb"
 	"github.com/wearefair/gurl/pkg/k8"
 	"github.com/wearefair/gurl/pkg/log"
 	"github.com/wearefair/gurl/pkg/options"
 	"github.com/wearefair/gurl/pkg/protobuf"
 	"github.com/wearefair/gurl/pkg/util"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -141,20 +139,20 @@ func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message
 	log.Infof("Dialing address: %s", address)
 
 	cfg := &jsonpb.Config{
-		Address: formatAddress(uri),
-		DialOptions: callOptions.DialOptions()...,
+		Address:     formatAddress(uri),
+		DialOptions: callOptions.DialOptions(),
 	}
 
 	client, err := jsonpb.NewClient(cfg)
 	if err != nil {
-		return log.LogAndReturn(err)
+		return nil, log.LogAndReturn(err)
 	}
 
-	response, err := client.Call(callOptions.ContextWithOptions(context.Background(), methodDescriptor, message)
+	response, err := client.Call(callOptions.ContextWithOptions(context.Background()), methodDescriptor, message)
 	if err != nil {
 		return nil, log.LogAndReturn(err)
 	}
-	return responseJSON, nil
+	return response, nil
 }
 
 // Helper func to format an address. Right now, this is only needed because K8
