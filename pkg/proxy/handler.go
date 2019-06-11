@@ -29,4 +29,6 @@ func RPCRouteHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 
 	spew.Dump(vars)
+
+	rw.WriteHeader(http.StatusOK)
 }

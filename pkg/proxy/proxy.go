@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	logmw "github.com/wearefair/gurl/pkg/middleware/log"
 )
 
 // Config wraps all configs for the proxy
@@ -28,18 +29,20 @@ func New(cfg *Config) *Proxy {
 		Handler: r,
 	}
 	return &Proxy{
-		router: r,
-		server: s,
+		router:  r,
+		server:  s,
+		handler: cfg.RouteHandler,
 	}
 }
 
 // Configures routes
-func (p *Proxy) configure() error {
-	p.router.HandleFunc("/{service}/{method}", p.handler)
-	return nil
+func (p *Proxy) configure() {
+	p.router.HandleFunc("/{service}/{method}", p.handler).Methods("POST")
+	p.router.Use(logmw.Middleware)
 }
 
 // Run the proxy server
 func (p *Proxy) Run() error {
+	p.configure()
 	return p.server.ListenAndServe()
 }

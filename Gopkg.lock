@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:8b8357ca201567d857f6644124f597a6b0fc20396576da4951bc70ae1ff86bc5"
+  name = "github.com/blocktop/go-glog-cobra"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1a2e8060f5d24a33c21382d5fcc75346d3e260a5"
+
+[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
