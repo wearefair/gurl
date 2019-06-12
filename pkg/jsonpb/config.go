@@ -6,6 +6,8 @@ import (
 
 // Config handles everything necessary to construct a Client
 type Config struct {
-	Address     string
-	DialOptions []grpc.DialOption
+	Address      string
+	DialOptions  []grpc.DialOption
+	ImportPaths  []string
+	ServicePaths []string
 }
