@@ -44,7 +44,7 @@ func (c *Client) Call(ctx context.Context, service, rpc, rawMsg string) ([]byte,
 	}
 
 	// Find the RPC attached to the service via the URI
-	methodDescriptor := serviceDescriptor.FindMethodByName(service)
+	methodDescriptor := serviceDescriptor.FindMethodByName(rpc)
 	if methodDescriptor == nil {
 		err := fmt.Errorf("No method %s found", service)
 		return nil, err
