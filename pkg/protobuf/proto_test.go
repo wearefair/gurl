@@ -64,7 +64,7 @@ func TestConstruct(t *testing.T) {
 	}
 
 	// Making an anonymous message struct to convert into a JSON string.
-	messageStr := `{ "name": "cat" }`
+	messageStr := []byte(`{ "name": "cat" }`)
 
 	// Actual construction test here now that we have a real message descriptor.
 	constructed, err := Construct(messageDescriptor, messageStr)
@@ -78,7 +78,7 @@ func TestConstruct(t *testing.T) {
 
 	// Unhappy path - We attempt to marshal a message as JSON string with invalid
 	// field names onto the message. This will construct a message with empty strings.
-	invalidMessageStr := `{ "fake": "news" }`
+	invalidMessageStr := []byte(`{ "fake": "news" }`)
 	invalidMessage, err := Construct(messageDescriptor, invalidMessageStr)
 	if err != nil {
 		t.Errorf("Error constructing message %s", err.Error())

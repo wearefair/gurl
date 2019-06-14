@@ -7,18 +7,13 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/spf13/cobra"
 	"github.com/wearefair/gurl/pkg/config"
+	"github.com/wearefair/gurl/pkg/jsonpb"
 	"github.com/wearefair/gurl/pkg/k8"
 	"github.com/wearefair/gurl/pkg/log"
 	"github.com/wearefair/gurl/pkg/options"
-	"github.com/wearefair/gurl/pkg/protobuf"
 	"github.com/wearefair/gurl/pkg/util"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -73,39 +68,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	}
 	log.Infof("Parsed URI: %#v", parsedURI)
 
-	// Walks the proto import and service paths defined in the config and returns all descriptors
-	descriptors, err := protobuf.Collect(config.Instance().Local.ImportPaths, config.Instance().Local.ServicePaths)
-	if err != nil {
-		return err
-	}
-
-	// Get the service descriptor that was set in the URI
-	collector := protobuf.NewCollector(descriptors)
-	serviceDescriptor, err := collector.GetService(parsedURI.Service)
-	if err != nil {
-		return err
-	}
-
-	// Find the RPC attached to the service via the URI
-	methodDescriptor := serviceDescriptor.FindMethodByName(parsedURI.RPC)
-	if methodDescriptor == nil {
-		err := fmt.Errorf("No method %s found", parsedURI.RPC)
-		return log.LogAndReturn(err)
-	}
-
-	methodProto := methodDescriptor.AsMethodDescriptorProto()
-	messageDescriptor, err := collector.GetMessage(
-		protobuf.NormalizeMessageName(*methodProto.InputType),
-	)
-	if err != nil {
-		return err
-	}
-
-	message, err := protobuf.Construct(messageDescriptor, data)
-	if err != nil {
-		return err
-	}
-
+	address := fmt.Sprintf("%s:%s", parsedURI.Host, parsedURI.Port)
 	if parsedURI.Protocol == util.K8Protocol {
 		// Set up port forward, then send request
 		req := uriToPortForwardRequest(parsedURI)
@@ -114,14 +77,26 @@ func runCall(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		defer pf.Close()
-		// TODO: Don't mutate the state of the URI and pass it down, that's not great.
-		parsedURI.Port = pf.LocalPort()
+
+		address = fmt.Sprintf("localhost:%s", pf.LocalPort())
+	}
+
+	cfg := &jsonpb.Config{
+		Address:      address,
+		DialOptions:  callOptions.DialOptions(),
+		ImportPaths:  config.Instance().Local.ImportPaths,
+		ServicePaths: config.Instance().Local.ServicePaths,
+	}
+
+	client, err := jsonpb.NewClient(cfg)
+	if err != nil {
+		return log.LogAndReturn(err)
 	}
 
 	// Send request and get response
-	response, err := sendRequest(parsedURI, methodDescriptor, message)
+	response, err := client.Call(callOptions.ContextWithOptions(context.Background()), parsedURI.Service, parsedURI.RPC, []byte(data))
 	if err != nil {
-		return err
+		return log.LogAndReturn(err)
 	}
 
 	// Prettifying JSON of response
@@ -132,44 +107,6 @@ func runCall(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("Response:\n%s\n", prettyResponse.String())
 	return nil
-}
-
-// sendRequest takes in the uri, the actual method descriptor, and the dynamically constructed message to send
-func sendRequest(uri *util.URI, methodDescriptor *desc.MethodDescriptor, message proto.Message) ([]byte, error) {
-	// TODO: A lot of this logic should get pulled out
-	address := formatAddress(uri)
-	log.Infof("Dialing address: %s", address)
-	clientConn, err := grpc.Dial(address, callOptions.DialOptions()...)
-	if err != nil {
-		return nil, log.LogAndReturn(err)
-	}
-	stub := grpcdynamic.NewStub(clientConn)
-	methodProto := methodDescriptor.AsMethodDescriptorProto()
-
-	// Disabled server and client streaming calls
-	disableStreaming := false
-	methodProto.ClientStreaming = &disableStreaming
-	methodProto.ServerStreaming = &disableStreaming
-	response, err := stub.InvokeRpc(callOptions.ContextWithOptions(context.Background()), methodDescriptor, message)
-	if err != nil {
-		return nil, log.LogAndReturn(err)
-	}
-	marshaler := &runtime.JSONPb{}
-	// Marshals PB response into JSON
-	responseJSON, err := marshaler.Marshal(response)
-	if err != nil {
-		return nil, log.LogAndReturn(err)
-	}
-	return responseJSON, nil
-}
-
-// Helper func to format an address. Right now, this is only needed because K8
-// requests get locked to localhost for port-forwarding.
-func formatAddress(uri *util.URI) string {
-	if uri.Protocol == util.K8Protocol {
-		return fmt.Sprintf("localhost:%s", uri.Port)
-	}
-	return fmt.Sprintf("%s:%s", uri.Host, uri.Port)
 }
 
 // Reads K8 config from default location, which is $HOME/.kube/config
