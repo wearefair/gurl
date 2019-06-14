@@ -4,45 +4,46 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	logmw "github.com/wearefair/gurl/pkg/middleware/log"
+	"github.com/wearefair/gurl/pkg/jsonpb"
 )
-
-// Config wraps all configs for the proxy
-type Config struct {
-	Addr         string
-	RouteHandler func(http.ResponseWriter, *http.Request)
-}
 
 // Proxy encapsulates all gURL proxy server logic
 type Proxy struct {
-	router  *mux.Router
-	server  *http.Server
-	handler func(http.ResponseWriter, *http.Request)
+	client            *jsonpb.Client
+	router            *mux.Router
+	server            *http.Server
+	proxyTargetHeader string
 }
 
 // New returns an instance of Proxy
 func New(cfg *Config) *Proxy {
-	// TODO: Allow for overriding of the handler
-	r := mux.NewRouter()
+	configureMiddleware(cfg.Router, cfg.Middlewares)
+
 	s := &http.Server{
 		Addr:    cfg.Addr,
-		Handler: r,
+		Handler: cfg.Router,
 	}
-	return &Proxy{
-		router:  r,
-		server:  s,
-		handler: cfg.RouteHandler,
-	}
-}
 
-// Configures routes
-func (p *Proxy) configure() {
-	p.router.HandleFunc("/{service}/{method}", p.handler).Methods("POST")
-	p.router.Use(logmw.Middleware)
+	return &Proxy{
+		client:            cfg.Client,
+		proxyTargetHeader: cfg.ProxyTargetHeader,
+		server:            s,
+	}
 }
 
 // Run the proxy server
 func (p *Proxy) Run() error {
 	p.configure()
 	return p.server.ListenAndServe()
+}
+
+// Proxy configure configures the handler and routes
+func (p *Proxy) configure() {
+	p.router.HandleFunc("/{service}/{rpc}", p.Handler)
+}
+
+func configureMiddleware(r *mux.Router, middlewares []func(http.Handler) http.Handler) {
+	for _, middleware := range middlewares {
+		r.Use(middleware)
+	}
 }

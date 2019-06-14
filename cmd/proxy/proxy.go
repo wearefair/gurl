@@ -24,8 +24,7 @@ func init() {
 
 func runProxy(cmd *cobra.Command, args []string) error {
 	cfg := &proxy.Config{
-		Addr:         fmt.Sprintf(":%d", port),
-		RouteHandler: proxy.RPCRouteHandler,
+		Addr: fmt.Sprintf(":%d", port),
 	}
 
 	proxySrv := proxy.New(cfg)

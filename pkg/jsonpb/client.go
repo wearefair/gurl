@@ -13,7 +13,7 @@ import (
 // Client handles constructing and dialing a gRPC service
 type Client struct {
 	stub grpcdynamic.Stub
-	// TODO: Might want to turn this into an interface?
+	// TODO: Might want to turn this into an interface and make this reusable/overrideable?
 	collector *protobuf.Collector
 }
 
