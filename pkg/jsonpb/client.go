@@ -37,7 +37,7 @@ func NewClient(cfg *Config) (*Client, error) {
 
 // Call takes in a context, service, RPC, and message as JSON string to convert to protobuf and
 // send across the wire.
-func (c *Client) Call(ctx context.Context, service, rpc, rawMsg string) ([]byte, error) {
+func (c *Client) Call(ctx context.Context, service, rpc string, rawMsg []byte) ([]byte, error) {
 	serviceDescriptor, err := c.collector.GetService(service)
 	if err != nil {
 		return nil, err

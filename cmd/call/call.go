@@ -94,7 +94,7 @@ func runCall(cmd *cobra.Command, args []string) error {
 	}
 
 	// Send request and get response
-	response, err := client.Call(callOptions.ContextWithOptions(context.Background()), parsedURI.Service, parsedURI.RPC, data)
+	response, err := client.Call(callOptions.ContextWithOptions(context.Background()), parsedURI.Service, parsedURI.RPC, []byte(data))
 	if err != nil {
 		return log.LogAndReturn(err)
 	}

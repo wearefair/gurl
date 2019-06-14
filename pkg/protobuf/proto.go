@@ -19,11 +19,11 @@ func NormalizeMessageName(name string) string {
 	return strings.TrimLeft(name, ".")
 }
 
-// Construct takes a message descriptor and a message, as a JSON string and
+// Construct takes a message descriptor and a message, as JSON and
 // returns it as a message, or an error if there's issues marshalling
-func Construct(messageDescriptor *desc.MessageDescriptor, request string) (*dynamic.Message, error) {
+func Construct(messageDescriptor *desc.MessageDescriptor, request []byte) (*dynamic.Message, error) {
 	message := dynamic.NewMessage(messageDescriptor)
-	err := (&runtime.JSONPb{}).Unmarshal([]byte(request), message)
+	err := (&runtime.JSONPb{}).Unmarshal(request, message)
 	if err != nil {
 		return nil, log.LogAndReturn(err)
 	}
