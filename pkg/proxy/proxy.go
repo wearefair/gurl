@@ -4,15 +4,16 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/wearefair/gurl/pkg/jsonpb"
 )
 
 // Proxy encapsulates all gURL proxy server logic
 type Proxy struct {
-	client            *jsonpb.Client
 	router            *mux.Router
 	server            *http.Server
 	proxyTargetHeader string
+
+	importPaths  []string
+	servicePaths []string
 }
 
 // New returns an instance of Proxy
@@ -25,8 +26,8 @@ func New(cfg *Config) *Proxy {
 	}
 
 	return &Proxy{
-		client:            cfg.Client,
 		proxyTargetHeader: cfg.ProxyTargetHeader,
+		router:            cfg.Router,
 		server:            s,
 	}
 }

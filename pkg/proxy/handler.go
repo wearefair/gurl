@@ -7,6 +7,8 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
+	"github.com/wearefair/gurl/pkg/jsonpb"
+	"github.com/wearefair/gurl/pkg/log"
 )
 
 const (
@@ -23,11 +25,12 @@ const (
 // which defaults to x-gurl-proxy-target
 func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 	// Pull the host off the headers
-	headers := req.Header.Get(p.proxyTargetHeader)
+	target := req.Header.Get(p.proxyTargetHeader)
 
 	// If the header is not set... return a 422, because we really
 	// can't process this request. Where are we supposed to forward this to?
-	if headers == "" {
+	if target == "" {
+		log.Error("Proxy target header is empty!")
 		rw.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -35,6 +38,7 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	msg, err := ioutil.ReadAll(req.Body)
 	if err != nil {
+		log.Error(err.Error())
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -48,8 +52,22 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 	service := vars[ServiceKey]
 	rpc := vars[RpcKey]
 
-	response, err := p.client.Call(context.Background(), service, rpc, msg)
+	cfg := &jsonpb.Config{
+		Address:      target,
+		ImportPaths:  p.importPaths,
+		ServicePaths: p.servicePaths,
+	}
+
+	client, err := jsonpb.NewClient(cfg)
 	if err != nil {
+		log.Error(err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	response, err := client.Call(context.Background(), service, rpc, msg)
+	if err != nil {
+		log.Error(err)
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}

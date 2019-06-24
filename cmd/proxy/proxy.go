@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"github.com/wearefair/gurl/pkg/log"
 	"github.com/wearefair/gurl/pkg/proxy"
@@ -23,9 +21,7 @@ func init() {
 }
 
 func runProxy(cmd *cobra.Command, args []string) error {
-	cfg := &proxy.Config{
-		Addr: fmt.Sprintf(":%d", port),
-	}
+	cfg := proxy.DefaultConfig()
 
 	proxySrv := proxy.New(cfg)
 	log.Infof("Starting server at %d\n", port)
