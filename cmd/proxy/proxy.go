@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/wearefair/gurl/pkg/config"
 	"github.com/wearefair/gurl/pkg/log"
 	"github.com/wearefair/gurl/pkg/proxy"
 )
@@ -22,6 +23,8 @@ func init() {
 
 func runProxy(cmd *cobra.Command, args []string) error {
 	cfg := proxy.DefaultConfig()
+	cfg.ImportPaths = config.Instance().Local.ImportPaths
+	cfg.ServicePaths = config.Instance().Local.ServicePaths
 
 	proxySrv := proxy.New(cfg)
 	log.Infof("Starting server at %d\n", port)

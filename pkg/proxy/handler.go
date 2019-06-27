@@ -1,14 +1,13 @@
 package proxy
 
 import (
-	"context"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 	"github.com/wearefair/gurl/pkg/jsonpb"
 	"github.com/wearefair/gurl/pkg/log"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -24,6 +23,8 @@ const (
 // The destination must be set in the headers under the proxy target header
 // which defaults to x-gurl-proxy-target
 func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
 	// Pull the host off the headers
 	target := req.Header.Get(p.proxyTargetHeader)
 
@@ -45,8 +46,6 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 
 	// Pull the variables off of the request
 	vars := mux.Vars(req)
-	// TODO: Remove
-	spew.Dump(vars)
 
 	// TODO: Validation errors on either one of these if they're nil
 	service := vars[ServiceKey]
@@ -56,6 +55,20 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 		Address:      target,
 		ImportPaths:  p.importPaths,
 		ServicePaths: p.servicePaths,
+		// TODO
+		DialOptions: []grpc.DialOption{
+			grpc.WithInsecure(),
+		},
+	}
+
+	jsonpbReq := &jsonpb.Request{
+		Address: target,
+		DialOptions: []grpc.DialOption{
+			grpc.WithInsecure(),
+		},
+		Service: service,
+		RPC:     rpc,
+		Message: msg,
 	}
 
 	client, err := jsonpb.NewClient(cfg)
@@ -65,7 +78,7 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	response, err := client.Call(context.Background(), service, rpc, msg)
+	response, err := client.Invoke(ctx, jsonpbReq)
 	if err != nil {
 		log.Error(err)
 		rw.WriteHeader(http.StatusBadRequest)

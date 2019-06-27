@@ -84,7 +84,6 @@ func runCall(cmd *cobra.Command, args []string) error {
 	}
 
 	cfg := &jsonpb.Config{
-		Address:      address,
 		DialOptions:  callOptions.DialOptions(),
 		ImportPaths:  config.Instance().Local.ImportPaths,
 		ServicePaths: config.Instance().Local.ServicePaths,
@@ -96,7 +95,15 @@ func runCall(cmd *cobra.Command, args []string) error {
 	}
 
 	// Send request and get response
-	response, err := client.Call(callOptions.ContextWithOptions(context.Background()), parsedURI.Service, parsedURI.RPC, []byte(data))
+	req := &jsonpb.Request{
+		Address:     address,
+		DialOptions: callOptions.DialOptions(),
+		Service:     parsedURI.Service,
+		RPC:         parsedURI.RPC,
+		Message:     []byte(data),
+	}
+
+	response, err := client.Invoke(callOptions.ContextWithOptions(context.Background()), req)
 	if err != nil {
 		return log.LogAndReturn(err)
 	}

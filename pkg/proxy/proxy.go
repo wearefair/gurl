@@ -29,6 +29,9 @@ func New(cfg *Config) *Proxy {
 		proxyTargetHeader: cfg.ProxyTargetHeader,
 		router:            cfg.Router,
 		server:            s,
+
+		importPaths:  cfg.ImportPaths,
+		servicePaths: cfg.ServicePaths,
 	}
 }
 
