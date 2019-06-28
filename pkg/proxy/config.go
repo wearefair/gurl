@@ -5,15 +5,16 @@ import (
 
 	"github.com/gorilla/mux"
 	logmw "github.com/wearefair/gurl/pkg/middleware/log"
-	"google.golang.org/grpc"
+	"github.com/wearefair/gurl/pkg/options"
+	"google.golang.org/grpc/metadata"
 )
 
 // Config wraps all configs for the proxy
 type Config struct {
 	// Addr is the address that the proxy will run at
 	Addr string
-	// DialOptions to pass down to the jsonpb client
-	DialOptions []grpc.DialOption
+	// Options to pass down to the jsonpb client
+	Options *options.Options
 	// ImportPaths are the import paths to pass down to the jsonpb client
 	ImportPaths []string
 	// ServicePaths are the service paths to pass down to the jsonpb client
@@ -34,6 +35,7 @@ func DefaultConfig() *Config {
 		Middlewares: []func(http.Handler) http.Handler{
 			logmw.Middleware,
 		},
+		Options:           &options.Options{Metadata: metadata.MD{}},
 		Router:            mux.NewRouter(),
 		ProxyTargetHeader: DefaultProxyTargetHeader,
 	}

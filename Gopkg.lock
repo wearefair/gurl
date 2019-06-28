@@ -3,22 +3,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8b8357ca201567d857f6644124f597a6b0fc20396576da4951bc70ae1ff86bc5"
-  name = "github.com/blocktop/go-glog-cobra"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "1a2e8060f5d24a33c21382d5fcc75346d3e260a5"
-
-[[projects]]
-  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
-  name = "github.com/davecgh/go-spew"
-  packages = ["spew"]
-  pruneopts = "UT"
-  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
-  version = "v1.1.1"
-
-[[projects]]
-  branch = "master"
   digest = "1:dbb3d1675f5beeb37de6e9b95cc460158ff212902a916e67688b01e0660f41bd"
   name = "github.com/docker/spdystream"
   packages = [
@@ -82,6 +66,20 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "316fb6d3f031ae8f4d457c6c5186b9e3ded70435"
+
+[[projects]]
+  digest = "1:bf40199583e5143d1472fc34d10d6f4b69d97572142acf343b3e43136da40823"
+  name = "github.com/google/go-cmp"
+  packages = [
+    "cmp",
+    "cmp/internal/diff",
+    "cmp/internal/flags",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
+  pruneopts = "UT"
+  revision = "6f77996f0c42f7b84e5a2b252227263f93432e9b"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
@@ -495,9 +493,8 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/davecgh/go-spew/spew",
     "github.com/golang/glog",
-    "github.com/golang/protobuf/proto",
+    "github.com/google/go-cmp/cmp",
     "github.com/gorilla/mux",
     "github.com/grpc-ecosystem/grpc-gateway/runtime",
     "github.com/jhump/protoreflect/desc",

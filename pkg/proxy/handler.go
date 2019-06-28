@@ -1,13 +1,14 @@
 package proxy
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/wearefair/gurl/pkg/jsonpb"
 	"github.com/wearefair/gurl/pkg/log"
-	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -23,8 +24,6 @@ const (
 // The destination must be set in the headers under the proxy target header
 // which defaults to x-gurl-proxy-target
 func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
-	ctx := req.Context()
-
 	// Pull the host off the headers
 	target := req.Header.Get(p.proxyTargetHeader)
 
@@ -55,20 +54,14 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 		Address:      target,
 		ImportPaths:  p.importPaths,
 		ServicePaths: p.servicePaths,
-		// TODO
-		DialOptions: []grpc.DialOption{
-			grpc.WithInsecure(),
-		},
 	}
 
 	jsonpbReq := &jsonpb.Request{
-		Address: target,
-		DialOptions: []grpc.DialOption{
-			grpc.WithInsecure(),
-		},
-		Service: service,
-		RPC:     rpc,
-		Message: msg,
+		Address:     target,
+		DialOptions: p.opts.DialOptions(),
+		Service:     service,
+		RPC:         rpc,
+		Message:     msg,
 	}
 
 	client, err := jsonpb.NewClient(cfg)
@@ -77,6 +70,9 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	outgoingMd := mergeHttpHeadersToMetadata(metadata.MD{}, req.Header)
+	ctx := metadata.NewOutgoingContext(context.Background(), outgoingMd)
 
 	response, err := client.Invoke(ctx, jsonpbReq)
 	if err != nil {
@@ -87,4 +83,13 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(response)
+}
+
+func mergeHttpHeadersToMetadata(md metadata.MD, headers http.Header) metadata.MD {
+	mdCopy := md.Copy()
+	for key, vals := range headers {
+		mdCopy.Append(key, vals...)
+	}
+
+	return mdCopy
 }

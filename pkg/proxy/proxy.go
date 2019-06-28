@@ -4,12 +4,14 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/wearefair/gurl/pkg/options"
 )
 
 // Proxy encapsulates all gURL proxy server logic
 type Proxy struct {
 	router            *mux.Router
 	server            *http.Server
+	opts              *options.Options
 	proxyTargetHeader string
 
 	importPaths  []string
@@ -26,6 +28,7 @@ func New(cfg *Config) *Proxy {
 	}
 
 	return &Proxy{
+		opts:              cfg.Options,
 		proxyTargetHeader: cfg.ProxyTargetHeader,
 		router:            cfg.Router,
 		server:            s,
