@@ -11,8 +11,6 @@ const (
 	// K8Protocol just represents the protocol used in order to specify that
 	// gurl should forward requests to Kubernetes.
 	K8Protocol = "k8"
-	// TODO: Add support for Kubernetes namespaces.
-	//
 	// Regexp for extracting the information out of a URI that's passed to gurl
 	// in order to properly form a request.
 	//
