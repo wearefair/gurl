@@ -23,8 +23,12 @@ const (
 	// k8 will signify to gurl that the request needs to be forwarded
 	// to Kubernetes. If not specified, it will default to http
 	//
-	// Context - Optional parameter for Kubernetes context. If not specified
-	// it will default to the default context.
+	// Context - Parameter for Kubernetes context. Optional ONLY IF namespace is
+	// not specified. Due to limitations with how we're parsing the URI, this
+	// must be specified if you want to send over a namespace.
+	//
+	// Namespace - Optional parameter for Kubernetes namespace. If not specified
+	// it will be "default".
 	//
 	// Host - Hostname to direct requests. When the request uses the k8://
 	// protocol, this will be the K8 service name.
@@ -39,9 +43,16 @@ const (
 	// RPC - The name of the RPC to direct the request towards.
 	//
 	// Examples of valid URI for gurl:
+	//
+	// Non-K8 request:
 	// http://localhost:50051/hello.world.package.Foo/Bar
+	//
+	// K8 request without namespace:
 	// k8://fake-context/foo-service:50051/hello.world.package.Foo/Bar
-	uriRegex = `((?P<protocol>[a-z0-9]{2,5})(?:\:\/\/)((?P<context>[0-9a-z._-]+)(?:\/))?)?(?P<host>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})(?:\/)(?P<service>[0-9a-zA-Z._-]+)(?:\/)(?P<rpc>[0-9a-zA-Z._-]+)`
+	//
+	// K8 request with namespace:
+	// k8://sandbox-secure/kube-system/foo-service:50051/hello.world.package.Foo/Bar
+	uriRegex = `((?P<protocol>[a-z0-9]{2,5})(?:\:\/\/)((?P<context>[0-9a-z._-]+)(?:\/))?((?P<namespace>[0-9a-z._-]+)(?:\/))?)?(?P<host>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})(?:\/)(?P<service>[0-9a-zA-Z._-]+)(?:\/)(?P<rpc>[0-9a-zA-Z._-]+)`
 )
 
 var (
@@ -51,12 +62,13 @@ var (
 
 // URI represents a deconstructed uri structure
 type URI struct {
-	Protocol string
-	Context  string
-	Host     string
-	Port     string
-	Service  string
-	RPC      string
+	Protocol  string
+	Context   string
+	Namespace string
+	Host      string
+	Port      string
+	Service   string
+	RPC       string
 }
 
 // ParseURI parses a string URI against the regexp and returns it in an expected format
@@ -79,12 +91,13 @@ func ParseURI(uri string) (*URI, error) {
 		return nil, log.LogAndReturn(errInvalidURIFormat)
 	}
 	uriWrapper := &URI{
-		Protocol: namedMatches["protocol"],
-		Context:  namedMatches["context"],
-		Host:     namedMatches["host"],
-		Port:     namedMatches["port"],
-		Service:  namedMatches["service"],
-		RPC:      namedMatches["rpc"],
+		Protocol:  namedMatches["protocol"],
+		Context:   namedMatches["context"],
+		Namespace: namedMatches["namespace"],
+		Host:      namedMatches["host"],
+		Port:      namedMatches["port"],
+		Service:   namedMatches["service"],
+		RPC:       namedMatches["rpc"],
 	}
 	return uriWrapper, nil
 }

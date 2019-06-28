@@ -54,7 +54,7 @@ kubeconfig: /Users/johnsmith/.kube/config
 ### Request Format
 gURL's request format is as follows:
 ```bash
-gurl -u <protocol|optional>://<k8-context|optional>/<host|kubernetes-service-name>:<port>/<service>/<rpc> -d '{ "field_name": "field_value" }'
+gurl -u <protocol|optional>://<k8-context|optional if namespace not specified>/<k8-namespace|optional>/<host|kubernetes-service-name>:<port>/<service>/<rpc> -d '{ "field_name": "field_value" }'
 ```
 
 gURL also supports forwarding requests to a Kubernetes server, so long as your kubeconfig is located in the default director of $HOME/.kube/config. If you format your request with the protocol k8://, gURL will know to send the Kubernetes request to a Kubernetes service via port-forwarding.
