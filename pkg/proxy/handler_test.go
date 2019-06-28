@@ -26,6 +26,11 @@ func TestMergeHttpHeadersToMetadata(t *testing.T) {
 			Headers:  map[string][]string{"hello": []string{"world", "boo"}},
 			Expected: metadata.Pairs("hello", "world", "hello", "boo"),
 		},
+		// Original metadata is not touched if headers are empty
+		{
+			Md:       metadata.Pairs("foo", "bar"),
+			Expected: metadata.Pairs("foo", "bar"),
+		},
 	}
 
 	for i, testCase := range testCases {

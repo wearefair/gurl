@@ -71,7 +71,7 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	outgoingMd := mergeHttpHeadersToMetadata(metadata.MD{}, req.Header)
+	outgoingMd := mergeHttpHeadersToMetadata(p.opts.Metadata, req.Header)
 	ctx := metadata.NewOutgoingContext(context.Background(), outgoingMd)
 
 	response, err := client.Invoke(ctx, jsonpbReq)
