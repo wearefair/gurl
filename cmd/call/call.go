@@ -122,9 +122,8 @@ func k8Config() clientcmd.ClientConfig {
 
 func uriToPortForwardRequest(uri *util.URI) k8.PortForwardRequest {
 	return k8.PortForwardRequest{
-		Context: uri.Context,
-		// TODO: Make this namespace configurable via URI
-		Namespace: "default",
+		Context:   uri.Context,
+		Namespace: uri.Namespace,
 		Service:   uri.Host,
 		Port:      uri.Port,
 	}
