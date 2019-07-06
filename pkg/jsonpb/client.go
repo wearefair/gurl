@@ -7,7 +7,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/wearefair/gurl/pkg/protobuf"
-	"google.golang.org/grpc"
 )
 
 // Client handles constructing and dialing a gRPC service
@@ -30,10 +29,12 @@ func NewClient(cfg *Config) (*Client, error) {
 
 // Invoke makes a unary call across the wire.
 func (c *Client) Invoke(ctx context.Context, req *Request) ([]byte, error) {
-	conn, err := grpc.Dial(req.Address, req.DialOptions...)
+	// Run any connection logic
+	conn, err := req.Connect()
 	if err != nil {
 		return nil, err
 	}
+	defer req.Close()
 
 	stub := grpcdynamic.NewStub(conn)
 

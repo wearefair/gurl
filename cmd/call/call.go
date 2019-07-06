@@ -70,32 +70,30 @@ func runCall(cmd *cobra.Command, args []string) error {
 	}
 	log.Infof("Parsed URI: %#v", parsedURI)
 
-	address := fmt.Sprintf("%s:%s", parsedURI.Host, parsedURI.Port)
+	// Set up connector
+	var connector jsonpb.Connector
 	if parsedURI.Protocol == util.K8Protocol {
 		// Set up port forward, then send request
 		req := uriToPortForwardRequest(parsedURI)
-		pf, err := k8.StartPortForward(k8Config(), req)
-		if err != nil {
-			return err
-		}
-		defer pf.Close()
 
-		address = fmt.Sprintf("localhost:%s", pf.LocalPort())
+		connector = jsonpb.NewK8Connector(k8Config(), req)
 	}
 
+	// Set up the JSONPB client
 	cfg := &jsonpb.Config{
 		DialOptions:  callOptions.DialOptions(),
 		ImportPaths:  config.Instance().Local.ImportPaths,
 		ServicePaths: config.Instance().Local.ServicePaths,
 	}
-
 	client, err := jsonpb.NewClient(cfg)
 	if err != nil {
 		return log.LogAndReturn(err)
 	}
 
 	// Send request and get response
+	address := fmt.Sprintf("%s:%s", parsedURI.Host, parsedURI.Port)
 	req := &jsonpb.Request{
+		Connector:   connector,
 		Address:     address,
 		DialOptions: callOptions.DialOptions(),
 		Service:     parsedURI.Service,
