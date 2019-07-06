@@ -50,12 +50,6 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 	service := vars[ServiceKey]
 	rpc := vars[RpcKey]
 
-	cfg := &jsonpb.Config{
-		Address:      target,
-		ImportPaths:  p.importPaths,
-		ServicePaths: p.servicePaths,
-	}
-
 	jsonpbReq := &jsonpb.Request{
 		Address:     target,
 		DialOptions: p.opts.DialOptions(),
@@ -64,17 +58,11 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 		Message:     msg,
 	}
 
-	client, err := jsonpb.NewClient(cfg)
-	if err != nil {
-		log.Error(err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
+	// TODO: This ctx isn't used properly
 	outgoingMd := mergeHttpHeadersToMetadata(p.opts.Metadata, req.Header)
 	ctx := metadata.NewOutgoingContext(context.Background(), outgoingMd)
 
-	response, err := client.Invoke(ctx, jsonpbReq)
+	response, err := p.caller.Invoke(ctx, jsonpbReq)
 	if err != nil {
 		log.Error(err)
 		rw.WriteHeader(http.StatusBadRequest)

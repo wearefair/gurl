@@ -15,14 +15,20 @@ type Config struct {
 	Addr string
 	// Options to pass down to the jsonpb client
 	Options *options.Options
-	// ImportPaths are the import paths to pass down to the jsonpb client
-	ImportPaths []string
-	// ServicePaths are the service paths to pass down to the jsonpb client
-	ServicePaths []string
+	// Caller is what's used to pull in the import and service paths for handling
+	// the JSON to protobuf behavior
+	Caller Caller
+	//	// ImportPaths are the import paths to pass down to the jsonpb client
+	//	ImportPaths []string
+	//	// ServicePaths are the service paths to pass down to the jsonpb client
+	//	ServicePaths []string
 	// Middlewares you want to register with the router
 	Middlewares []func(http.Handler) http.Handler
-	// You can overwrite the ProxyTargetHeader to target calls at, if desired.
+	// You can override the ProxyTargetHeader to target calls at, if desired.
 	ProxyTargetHeader string
+	// You can override the default handler. This should only be passed in if
+	// you don't want to override the Router.
+	ProxyHandler http.HandlerFunc
 	// If you want to override the default mux.Router. All of the middleware
 	// passed in will be registered on the router on creation of the Proxy struct.
 	Router *mux.Router

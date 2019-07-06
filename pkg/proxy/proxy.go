@@ -9,6 +9,7 @@ import (
 
 // Proxy encapsulates all gURL proxy server logic
 type Proxy struct {
+	caller            Caller
 	router            *mux.Router
 	server            *http.Server
 	opts              *options.Options
@@ -33,8 +34,8 @@ func New(cfg *Config) *Proxy {
 		router:            cfg.Router,
 		server:            s,
 
-		importPaths:  cfg.ImportPaths,
-		servicePaths: cfg.ServicePaths,
+		//		importPaths:  cfg.ImportPaths,
+		//		servicePaths: cfg.ServicePaths,
 	}
 }
 
