@@ -2,13 +2,17 @@ package proxy
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/wearefair/gurl/pkg/jsonpb"
+	"github.com/wearefair/gurl/pkg/k8"
 	"github.com/wearefair/gurl/pkg/log"
+	"github.com/wearefair/gurl/pkg/util"
 	"google.golang.org/grpc/metadata"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -50,7 +54,30 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 	service := vars[ServiceKey]
 	rpc := vars[RpcKey]
 
+	if service == "" || rpc == "" {
+		log.Error(fmt.Errorf("Service or RPC cannot be blank, service: %s, rpc: %s\n", service, rpc))
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	parsedURI, err := util.ParseURI(target)
+	if err != nil {
+		log.Error(err)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// TODO: This is duplicated
+	var connector jsonpb.Connector
+	if parsedURI.Protocol == util.K8Protocol {
+		// Set up port forward, then send request
+		req := uriToPortForwardRequest(parsedURI)
+
+		connector = jsonpb.NewK8Connector(k8Config(), req)
+	}
+
 	jsonpbReq := &jsonpb.Request{
+		Connector:   connector,
 		Address:     target,
 		DialOptions: p.opts.DialOptions(),
 		Service:     service,
@@ -80,4 +107,26 @@ func mergeHttpHeadersToMetadata(md metadata.MD, headers http.Header) metadata.MD
 	}
 
 	return mdCopy
+}
+
+// Reads K8 config from default location, which is $HOME/.kube/config
+func k8Config() clientcmd.ClientConfig {
+	// if you want to change the loading rules (which files in which order), you can do so here
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+
+	// if you want to change override values or bind them to flags, there are methods to help you
+	configOverrides := &clientcmd.ConfigOverrides{}
+
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+}
+
+// TODO: This is duplicated logic
+func uriToPortForwardRequest(uri *util.URI) k8.PortForwardRequest {
+	return k8.PortForwardRequest{
+		Context: uri.Context,
+		// TODO: Make this namespace configurable via URI
+		Namespace: "default",
+		Service:   uri.Host,
+		Port:      uri.Port,
+	}
 }

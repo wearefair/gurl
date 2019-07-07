@@ -29,13 +29,11 @@ func New(cfg *Config) *Proxy {
 	}
 
 	return &Proxy{
+		caller:            cfg.Caller,
 		opts:              cfg.Options,
 		proxyTargetHeader: cfg.ProxyTargetHeader,
 		router:            cfg.Router,
 		server:            s,
-
-		//		importPaths:  cfg.ImportPaths,
-		//		servicePaths: cfg.ServicePaths,
 	}
 }
 

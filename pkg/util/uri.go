@@ -41,7 +41,7 @@ const (
 	// Examples of valid URI for gurl:
 	// http://localhost:50051/hello.world.package.Foo/Bar
 	// k8://fake-context/foo-service:50051/hello.world.package.Foo/Bar
-	uriRegex = `((?P<protocol>[a-z0-9]{2,5})(?:\:\/\/)((?P<context>[0-9a-z._-]+)(?:\/))?)?(?P<host>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})(?:\/)(?P<service>[0-9a-zA-Z._-]+)(?:\/)(?P<rpc>[0-9a-zA-Z._-]+)`
+	uriRegex = `((?P<protocol>[a-z0-9]{2,5})(?:\:\/\/)((?P<context>[0-9a-z._-]+)(?:\/))?)?(?P<host>[0-9a-z-_.]+)(?:\:)(?P<port>[0-9]{2,5})((?:\/)(?P<service>[0-9a-zA-Z._-]+)(?:\/)(?P<rpc>[0-9a-zA-Z._-]+))?`
 )
 
 var (

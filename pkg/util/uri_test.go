@@ -59,6 +59,17 @@ func TestParseURI(t *testing.T) {
 			},
 			Err: nil,
 		},
+		// Parse input without service or RPC
+		{
+			Input: "k8://fake-context/k8-service:3000/",
+			Expected: &URI{
+				Protocol: "k8",
+				Host:     "k8-service",
+				Port:     "3000",
+				Context:  "fake-context",
+			},
+			Err: nil,
+		},
 		// Input that's a completely hot garbage returns error
 		{
 			Input:    "fakeNews",
