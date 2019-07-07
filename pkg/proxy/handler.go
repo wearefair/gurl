@@ -12,7 +12,6 @@ import (
 	"github.com/wearefair/gurl/pkg/log"
 	"github.com/wearefair/gurl/pkg/util"
 	"google.golang.org/grpc/metadata"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -71,9 +70,15 @@ func (p *Proxy) Handler(rw http.ResponseWriter, req *http.Request) {
 	var connector jsonpb.Connector
 	if parsedURI.Protocol == util.K8Protocol {
 		// Set up port forward, then send request
-		req := uriToPortForwardRequest(parsedURI)
+		req := k8.PortForwardRequest{
+			Context: parsedURI.Context,
+			// TODO: Make this namespace configurable via URI
+			Namespace: "default",
+			Service:   parsedURI.Host,
+			Port:      parsedURI.Port,
+		}
 
-		connector = jsonpb.NewK8Connector(k8Config(), req)
+		connector = jsonpb.NewK8Connector(k8.DefaultConfig(), req)
 	}
 
 	jsonpbReq := &jsonpb.Request{
@@ -107,26 +112,4 @@ func mergeHttpHeadersToMetadata(md metadata.MD, headers http.Header) metadata.MD
 	}
 
 	return mdCopy
-}
-
-// Reads K8 config from default location, which is $HOME/.kube/config
-func k8Config() clientcmd.ClientConfig {
-	// if you want to change the loading rules (which files in which order), you can do so here
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-
-	// if you want to change override values or bind them to flags, there are methods to help you
-	configOverrides := &clientcmd.ConfigOverrides{}
-
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-}
-
-// TODO: This is duplicated logic
-func uriToPortForwardRequest(uri *util.URI) k8.PortForwardRequest {
-	return k8.PortForwardRequest{
-		Context: uri.Context,
-		// TODO: Make this namespace configurable via URI
-		Namespace: "default",
-		Service:   uri.Host,
-		Port:      uri.Port,
-	}
 }
