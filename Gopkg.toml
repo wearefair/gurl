@@ -33,13 +33,30 @@
   name = "github.com/docker/distribution"
   revision = "5cb406d511b7b9163bff9b6439072e4892e5ae3b"
 
-[[override]]
-  name = "k8s.io/api"
-  version = "kubernetes-1.9.2"
-
+# Must keep this in sync with apimachinery
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "6.0.0"
+  version = "kubernetes-1.15.6"
+
+# Must keep this in sync with client-go
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.15.6"
+
+# Must keep this in sync with client-go
+[[constraint]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.15.6"
+
+[[override]]
+  name = "k8s.io/klog"
+  version = "v1.0.0"
+
+# Had to specify this to get the k8s client code to compile
+[[override]]
+  name = "github.com/json-iterator/go"
+  revision = "ab8a2e0c74be9d3be70b3184d9acc634935ded82"
+
 
 [prune]
   go-tests = true
