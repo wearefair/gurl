@@ -15,7 +15,7 @@ func Execute() {
 	}
 }
 
-func init() {
+func Init() {
 	cobra.OnInitialize(initConfig)
 	call.CallCmd.AddCommand(list.ListServicesCmd)
 	call.CallCmd.AddCommand(configcmd.ConfigCmd)
