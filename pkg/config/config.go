@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 
 	"github.com/golang/glog"
 	"github.com/wearefair/gurl/pkg/log"

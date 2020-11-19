@@ -19,15 +19,15 @@
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.8.0"
+  version = "1.12.2"
 
 [[constraint]]
   name = "gopkg.in/fatih/set.v0"
   version = "0.1.0"
 
 [[constraint]]
-  branch = "v2"
-  name = "gopkg.in/yaml.v2"
+  branch = "v3"
+  name = "gopkg.in/yaml.v3"
 
 [[override]]
   name = "github.com/docker/distribution"
