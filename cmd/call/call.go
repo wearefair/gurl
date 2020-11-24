@@ -43,11 +43,11 @@ func init() {
 	// Add any flags that were registered on the built-in flag package.
 	flags.AddGoFlagSet(flag.CommandLine)
 
-	ConfigurateFlags(flags)
+	ConfigureFlags(flags)
 }
 
 //function to configures flags not only in this project but for those projects that import this one
-func ConfigurateFlags(flags *pflag.FlagSet){
+func ConfigureFlags(flags *pflag.FlagSet){
 	flags.StringVarP(&uri, "uri", "u", "", "gRPC URI in the form of host:port/service_name/method_name")
 	flags.StringVarP(&data, "data", "d", "", "Data, as JSON string, to send to the gRPC service")
 	CallCmd.MarkFlagRequired("uri")
