@@ -1,6 +1,7 @@
 package k8
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -9,7 +10,6 @@ import (
 	"github.com/wearefair/gurl/pkg/log"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -75,12 +75,12 @@ func StartPortForward(config clientcmd.ClientConfig, req PortForwardRequest) (*P
 		log.Errorf("port-forward - failed to get a port: %s", err)
 		return nil, err
 	}
-
-	return startPortForward(newConfig, req, client, localPort)
+	ctx := context.Background()
+	return startPortForward(ctx, newConfig, req, client, localPort)
 }
 
 // Helper for StartPortForward that only takes interfaces so it can be mocked.
-func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, client k8Client, localPort string) (*PortForward, error) {
+func startPortForward(ctx context.Context, config clientcmd.ClientConfig, req PortForwardRequest, client k8Client, localPort string) (*PortForward, error) {
 	// If the caller didn't specify a namespace:
 	// - Look in the context for a namespace
 	// - Fall back to the default namespace
@@ -97,7 +97,7 @@ func startPortForward(config clientcmd.ClientConfig, req PortForwardRequest, cli
 		req.Namespace = ns
 	}
 
-	pod, remotePort, err := getPodNameAndRemotePort(client, req)
+	pod, remotePort, err := getPodNameAndRemotePort(ctx, client, req)
 	if err != nil {
 		log.Errorf("port-forward - failed to get pod and remote port: %s", err)
 		return nil, err
@@ -198,12 +198,12 @@ func (p *PortForward) connect(client k8Client, namespace, podName, remotePort st
 
 // Given a service and service port, returns a backing pod name and pod port that match the provided service.
 // Returns an error if a pod or port matching could not be determined.
-func getPodNameAndRemotePort(client k8Client, req PortForwardRequest) (string, string, error) {
-	podName, err := getPodNameFromServiceEndpoints(client, req)
+func getPodNameAndRemotePort(ctx context.Context, client k8Client, req PortForwardRequest) (string, string, error) {
+	podName, err := getPodNameFromServiceEndpoints(ctx, client, req)
 	if err != nil {
 		return "", "", err
 	}
-	targetPort, err := getPodPortFromServicePort(client, req)
+	targetPort, err := getPodPortFromServicePort(ctx, client, req)
 	if err != nil {
 		return "", "", err
 	}
@@ -211,8 +211,8 @@ func getPodNameAndRemotePort(client k8Client, req PortForwardRequest) (string, s
 }
 
 // Returns the pod port that maps to the requested service port.
-func getPodPortFromServicePort(client k8Client, req PortForwardRequest) (string, error) {
-	service, err := client.Service(req.Namespace, req.Service)
+func getPodPortFromServicePort(ctx context.Context, client k8Client, req PortForwardRequest) (string, error) {
+	service, err := client.Service(ctx, req.Namespace, req.Service)
 	if err != nil {
 		return "", err
 	}
@@ -237,8 +237,8 @@ func getPodPortFromServicePort(client k8Client, req PortForwardRequest) (string,
 
 // Returns the first pod name from the endpoints on the requested service.
 // If no pods could be found return error.
-func getPodNameFromServiceEndpoints(client k8Client, req PortForwardRequest) (string, error) {
-	endpoints, err := client.Endpoints(req.Namespace, req.Service)
+func getPodNameFromServiceEndpoints(ctx context.Context, client k8Client, req PortForwardRequest) (string, error) {
+	endpoints, err := client.Endpoints(ctx, req.Namespace, req.Service)
 	if err != nil {
 		return "", err
 	}
@@ -273,7 +273,7 @@ func restConfigWithDefaults(config rest.Config) rest.Config {
 	gv := v1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/api"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

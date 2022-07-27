@@ -1,0 +1,44 @@
+name: gurl ci
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+
+env:
+  GOPRIVATE: "github.com/wearefair"
+  REPOPATH: ${{ github.workspace }}/src/github.com/${{ github.repository }}
+  ENV: "test"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.REPOPATH }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: ${{ env.REPOPATH }}
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.17.x
+      - name: Authorize to Github
+        run: echo "machine github.com login ${{ secrets.CICD_PIPELINE_TOKEN }}" > ~/.netrc
+      - name: Cache Go Build
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Test project
+        run: go test -v -race ./...
+      - name: Build project
+        run: go build -v
