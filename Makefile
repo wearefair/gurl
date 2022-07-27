@@ -2,4 +2,4 @@ build:
 	./build-all.bash
 
 deps:
-	dep ensure -v
+	go mod download && go mod tidy

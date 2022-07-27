@@ -1,13 +1,14 @@
 package k8
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 
 	"github.com/wearefair/gurl/pkg/log"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -20,8 +21,8 @@ const defaultNamespace = "default"
 // Interface for handling K8 operations
 type k8Client interface {
 	Config() rest.Config
-	Service(namespace, name string) (*v1.Service, error)
-	Endpoints(namespace, name string) (*v1.Endpoints, error)
+	Service(ctx context.Context, namespace, name string) (*v1.Service, error)
+	Endpoints(ctx context.Context, namespace, name string) (*v1.Endpoints, error)
 	PortForwarder(url *url.URL, localPort, remotePort string, ready, stop chan struct{}) (k8PortForwarder, error)
 }
 
@@ -52,12 +53,12 @@ func (k *k8ClientImpl) Config() rest.Config {
 	return *k.config
 }
 
-func (k *k8ClientImpl) Service(namespace, name string) (*v1.Service, error) {
-	return k.client.CoreV1().Services(namespace).Get(name, metav1.GetOptions{})
+func (k *k8ClientImpl) Service(ctx context.Context, namespace, name string) (*v1.Service, error) {
+	return k.client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (k *k8ClientImpl) Endpoints(namespace, name string) (*v1.Endpoints, error) {
-	return k.client.CoreV1().Endpoints(namespace).Get(name, metav1.GetOptions{})
+func (k *k8ClientImpl) Endpoints(ctx context.Context, namespace, name string) (*v1.Endpoints, error) {
+	return k.client.CoreV1().Endpoints(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
 func (k *k8ClientImpl) PortForwarder(url *url.URL, localPort, remotePort string, ready, stop chan struct{}) (k8PortForwarder, error) {

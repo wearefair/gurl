@@ -1,3 +1,5 @@
 .idea
 release/**
 vendor/**
+.vscode
+gurl
