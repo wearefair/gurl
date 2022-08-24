@@ -36,6 +36,20 @@ func TestParseURI(t *testing.T) {
 			},
 			Err: nil,
 		},
+		// Parse K8 protocol with context and namespace set
+		{
+			Input: "k8://sandbox-general/kube-system/public-api:80/fakeService.Service/fakeRPC",
+			Expected: &URI{
+				Protocol:  "k8",
+				Context:   "sandbox-general",
+				Namespace: "kube-system",
+				Host:      "public-api",
+				Port:      "80",
+				Service:   "fakeService.Service",
+				RPC:       "fakeRPC",
+			},
+			Err: nil,
+		},
 		// Parse input without protocol set
 		{
 			Input: "localhost:3000/fakeService.Service/fakeRPC",
